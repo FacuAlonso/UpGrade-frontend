@@ -4,7 +4,7 @@ export default function RootLayout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: false,   //oculta barra superior
+        headerShown: false,  
       }}
     />
   );
