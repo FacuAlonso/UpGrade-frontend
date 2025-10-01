@@ -1,23 +1,47 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { Link } from "expo-router";
+import { Text, StyleSheet, ScrollView } from "react-native";
+import UserXPCard from "../../components/userXPCard";
+import { MyClassesList } from "../../components/myClassesList";
+import type { ID } from "../data";
 
 export default function HomeScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Home</Text>
-      <Text style={styles.subtitle}>Acá irá el calendario de Mis Clases</Text>
+  const userId: ID = "s2"; // estudiante de ejemplo
 
-      {/* navButton1: primer acceso → ir a buscador */}
-      <Link href="/search-teachers" style={styles.link}>
-        Ir a buscar profes →
-      </Link>
-    </View>
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>Home</Text>
+      <UserXPCard studentId={userId} />
+
+      <Text style={styles.subtitle}>Mis clases</Text>
+      <MyClassesList userId={userId} />
+
+    </ScrollView>
   );
 }
+
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: "center" },
-  title: { fontSize: 24, fontWeight: "700", marginBottom: 8 },
-  subtitle: { color: "#6B7280", marginBottom: 16 },
-  link: { color: "#22C55E", fontWeight: "700", fontSize: 16 },
+  container: {
+    flexGrow: 1,
+    padding: 24,
+    gap: 16, 
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "black",
+    marginTop: 20
+  },
+  subtitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+    color: "black",
+  },
+  link: {
+    color: "#22C55E",
+    fontWeight: "700",
+    fontSize: 16,
+    marginTop: 24,
+  },
 });
