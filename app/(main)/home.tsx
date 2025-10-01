@@ -6,7 +6,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Home</Text>
-      <Text style={styles.subtitle}>Acá irá el calendario de "Mis clases"</Text>
+      <Text style={styles.subtitle}>Acá irá el calendario de Mis Clases</Text>
 
       {/* navButton1: primer acceso → ir a buscador */}
       <Link href="/search-teachers" style={styles.link}>
