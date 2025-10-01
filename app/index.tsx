@@ -1,10 +1,10 @@
 import React from "react";
-import { Image, ImageBackground, StyleSheet, Text, View } from "react-native";
+import { Image, ImageBackground, StyleSheet, View } from "react-native";
 import { Link } from "expo-router";
 import PrimaryButton from "../components/primaryButton";
 import SecondaryButton from "../components/secondaryButton";
 
-const SPACING = { xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32 };
+const SPACING = { s: 8, m: 12, l: 16, xl: 24, xxl: 32 };
 
 export default function Landing() {
   return (
@@ -15,13 +15,13 @@ export default function Landing() {
     >
       <View style={styles.overlay} />
 
-      <View style={styles.content}>
-        <View style={styles.brandRow}>
-          <Image source={require("../assets/images/isotipoUpGrade.jpg")} style={styles.logo} />
-          <View>
-            <Text style={styles.brand}>UpGrade</Text>
-            <Text style={styles.tagline}>APRENDÉ SIN LÍMITES</Text>
-          </View>
+      <View style={styles.container}>
+        <View style={styles.centerBlock}>
+          <Image
+            source={require("../assets/images/FulLogoHorizontal.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
 
         <View style={styles.buttons}>
@@ -33,7 +33,6 @@ export default function Landing() {
             <SecondaryButton label="Crear una cuenta" />
           </Link>
         </View>
-        
       </View>
     </ImageBackground>
   );
@@ -43,20 +42,26 @@ const styles = StyleSheet.create({
   bg: { flex: 1 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: "rgba(0,0,0,0.55)",
   },
-  content: {
+  container: {
+    flex: 1,
+    justifyContent: "space-between",
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.xxl,
+  },
+  centerBlock: {
     flex: 1,
     justifyContent: "center",
-    paddingHorizontal: SPACING.xl,
-  },
-  brandRow: {
-    flexDirection: "row",
     alignItems: "center",
-    marginBottom: SPACING.xl,
   },
-  logo: { width: 56, height: 56, marginRight: SPACING.m, borderRadius: 12 },
-  brand: { color: "#FFFFFF", fontSize: 32, fontWeight: "800", lineHeight: 36 },
-  tagline: { color: "#CFE6FF", fontSize: 12, letterSpacing: 1.2, marginTop: 2 },
-  buttons: { marginTop: SPACING.xl, gap: SPACING.m },
+  logo: {
+    width: "80%",
+    height: undefined,
+    aspectRatio: 1, 
+  },
+  buttons: {
+    gap: SPACING.m,
+    marginBottom: 100, 
+  },
 });
