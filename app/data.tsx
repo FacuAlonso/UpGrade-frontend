@@ -59,6 +59,7 @@ export const professors: Professor[] = [
   { id: 'p2', firstName: 'Stella', lastName: 'Boutet', email: 'stella@school.com' },
   { id: 'p3', firstName: 'William', lastName: 'Orwell', email: 'william@school.com' },
   { id: 'p4', firstName: 'Mariano', lastName: 'Berners', email: 'mariano@school.com' },
+  { id: 'p5', firstName: 'Walter', lastName: 'Whitepetta', email: 'wwpetta@school.com' },
 ];
 
 export const subjects: Subject[] = [
@@ -66,6 +67,7 @@ export const subjects: Subject[] = [
   { id: "sub2", name: "Álgebra y Geometría", icon: require("../assets/images/subjectIcons/algebra.png") },
   { id: "sub3", name: "Inglés avanzado", icon: require("../assets/images/subjectIcons/inglesAvanzado.jpeg") },
   { id: "sub4", name: "Programación Web", icon: require("../assets/images/subjectIcons/progWeb.png") },
+  { id: "sub5", name: "Química General", icon: require("../assets/images/subjectIcons/quimicaGeneral.png") },
 ];
 
 
@@ -97,11 +99,28 @@ export const classes: ClassSession[] = [
   {
     id: 'c4',
     studentId: 's2',
+    professorId: 'p5',
+    subjectId: 'sub5',
+    modality: 'presential',
+    dateTime: '2025-10-04T12:30:00.000Z',
+  },
+  {
+    id: 'c5',
+    studentId: 's2',
     professorId: 'p4',
     subjectId: 'sub4',
     modality: 'virtual',
     dateTime: '2025-10-04T16:30:00.000Z',
   },
+  {
+    id: 'c6',
+    studentId: 's2',
+    professorId: 'p1',
+    subjectId: 'sub1',
+    modality: 'virtual',
+    dateTime: '2025-10-04T19:30:00.000Z',
+  },
+  
 ];
 
 // -------------------- Funciones auxiliares --------------------
