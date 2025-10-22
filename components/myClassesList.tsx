@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useCallback } from "react";
 import {
-  FlatList,
   ScrollView,
   StyleSheet,
   Text,
@@ -27,7 +26,6 @@ export function MyClassesList({ userId }: { userId: User["id"] }) {
     [lessons, userId]
   );
 
-  // Estado de carga inicial
   if (isLoading && !isRefetching) {
     return (
       <View style={listStyles.emptyWrap}>
@@ -37,7 +35,6 @@ export function MyClassesList({ userId }: { userId: User["id"] }) {
     );
   }
 
-  // Estado de error
   if (isError) {
     return (
       <ScrollView
@@ -52,7 +49,6 @@ export function MyClassesList({ userId }: { userId: User["id"] }) {
     );
   }
 
-  // Estado sin clases
   if (!sessions.length) {
     return (
       <ScrollView
@@ -69,7 +65,6 @@ export function MyClassesList({ userId }: { userId: User["id"] }) {
     );
   }
 
-  // Lista de clases
   return (
     <ScrollView
       refreshControl={
