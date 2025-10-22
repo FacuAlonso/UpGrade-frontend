@@ -1,7 +1,7 @@
 import React from "react";
-import { Text, StyleSheet, ScrollView } from "react-native";
-import UserXPCard from "../../components/userXPCard";
+import { ScrollView, StyleSheet, Text } from "react-native";
 import { MyClassesList } from "../../components/myClassesList";
+import UserXPCard from "../../components/userXPCard";
 import type { ID } from "../data";
 
 export default function HomeScreen() {
