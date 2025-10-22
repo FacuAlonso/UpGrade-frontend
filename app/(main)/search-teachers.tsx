@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   View,
-  ScrollView,
   RefreshControl,
   ActivityIndicator,
   Image,
@@ -15,10 +14,8 @@ import {
 import FormTextInput from "../../components/formTextInput";
 import colors from "../../theme/colors";
 import spacing from "../../theme/spacing";
-import { useFetchUsers, useCreateLesson } from "../data";
-import type { User } from "../data";
-
-type Modality = "ONLINE" | "ONSITE";
+import { useFetchTutorAvailability, useCreateLesson } from "../data";
+import type { User, TutorAvailability } from "../data";
 
 function Pill({ label, active, onPress }: { label: string; active?: boolean; onPress?: () => void }) {
   return (
@@ -135,7 +132,7 @@ function ReserveModal({
 }
 
 export default function SearchTeachersScreen() {
-  const { data: users, isLoading, refetch, isRefetching } = useFetchUsers();
+  const { data: availabilities, isLoading, refetch, isRefetching } = useFetchTutorAvailability();
   const { mutate: createLesson } = useCreateLesson();
   const [query, setQuery] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -148,18 +145,26 @@ export default function SearchTeachersScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  const filtered = useMemo(() => {
-    return (
-      users
-        ?.filter((u) =>
-          !query
-            ? true
-            : u.firstName.toLowerCase().includes(query.toLowerCase()) ||
-              u.lastName.toLowerCase().includes(query.toLowerCase())
-        )
-        .filter((u) => (fMinRating ? (u.rating ?? 0) >= fMinRating : true)) ?? []
-    );
-  }, [users, query, fMinRating]);
+  // Agrupar por tutor
+  const tutors = useMemo(() => {
+    if (!availabilities) return [];
+    const map = new Map<number, { tutor: User; slots: TutorAvailability[] }>();
+    availabilities
+      .filter((a) => a.active)
+      .forEach((a) => {
+        if (!map.has(a.tutorId)) map.set(a.tutorId, { tutor: a.tutor, slots: [] });
+        map.get(a.tutorId)!.slots.push(a);
+      });
+    return Array.from(map.values())
+      .filter(({ tutor }) =>
+        !query
+          ? true
+          : tutor.firstName.toLowerCase().includes(query.toLowerCase()) ||
+            tutor.lastName.toLowerCase().includes(query.toLowerCase())
+      )
+      .filter(({ tutor }) => (fMinRating ? (tutor.rating ?? 0) >= fMinRating : true))
+      .sort((a, b) => (b.tutor.rating ?? 0) - (a.tutor.rating ?? 0));
+  }, [availabilities, query, fMinRating]);
 
   const [reserveOpen, setReserveOpen] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<User | null>(null);
@@ -169,7 +174,7 @@ export default function SearchTeachersScreen() {
   };
   const handleConfirm = (p: { teacherId: number; isoDate: string; startTime: string }) => {
     createLesson({
-      slotId: 0,
+      slotId: 0, // slot real se elige después cuando integres ClassSlot
       studentId: 1,
       tutorId: p.teacherId,
       subjectId: 1,
@@ -190,48 +195,40 @@ export default function SearchTeachersScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Buscar profesores" }} />
-
-      <FormTextInput
-        placeholder="Buscar por nombre o materia"
-        value={query}
-        onChangeText={setQuery}
-        returnKeyType="search"
-      />
-
+      <FormTextInput placeholder="Buscar por nombre" value={query} onChangeText={setQuery} returnKeyType="search" />
       <View style={styles.quickFilters}>
         <Pill label={fMinRating ? `${fMinRating}+ ⭐` : "Rating"} active={!!fMinRating} onPress={() => setFiltersOpen(true)} />
       </View>
 
       <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id.toString()}
+        data={tutors}
+        keyExtractor={(item) => item.tutor.id.toString()}
         contentContainerStyle={{ paddingBottom: spacing.xl }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         renderItem={({ item }) => (
           <Pressable style={[styles.card, { borderColor: colors.inputBorder }]}>
             <View style={styles.cardHeader}>
-              {item.profilePhoto ? (
-                <Image source={{ uri: item.profilePhoto }} style={styles.avatarImage} />
+              {item.tutor.profilePhoto ? (
+                <Image source={{ uri: item.tutor.profilePhoto }} style={styles.avatarImage} />
               ) : (
                 <View style={styles.avatar}>
-                  <Text style={{ color: colors.text, fontWeight: "700" }}>{item.firstName[0]}</Text>
+                  <Text style={{ color: colors.text, fontWeight: "700" }}>{item.tutor.firstName[0]}</Text>
                 </View>
               )}
               <View style={{ flex: 1 }}>
-                <Text style={[styles.name, { color: colors.text }]}>
-                  {item.firstName} {item.lastName}
+                <Text style={[styles.name, { color: colors.text }]}>{item.tutor.firstName} {item.tutor.lastName}</Text>
+                <Text style={{ color: colors.muted }}>
+                  {item.slots.map((s) => `${["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][s.weekday]} ${s.startTime}-${s.endTime}`).join(" · ")}
                 </Text>
               </View>
               <View style={{ alignItems: "flex-end" }}>
-                <Text style={[styles.rating, { color: colors.text }]}>
-                  {(item.rating ?? 5).toFixed(1)} ⭐
-                </Text>
+                <Text style={[styles.rating, { color: colors.text }]}>{(item.tutor.rating ?? 5).toFixed(1)} ⭐</Text>
               </View>
             </View>
 
             <View style={styles.cardFooter}>
-              <Text style={{ color: colors.muted }}>Disponible · Online</Text>
-              <Pressable style={styles.reserveButtonSmall} onPress={() => openReserve(item)}>
+              <Text style={{ color: colors.muted }}>Disponible</Text>
+              <Pressable style={styles.reserveButtonSmall} onPress={() => openReserve(item.tutor)}>
                 <Text style={styles.reserveButtonText}>RESERVAR</Text>
               </Pressable>
             </View>
@@ -240,24 +237,6 @@ export default function SearchTeachersScreen() {
       />
 
       <ReserveModal teacher={selectedTeacher} open={reserveOpen} onClose={() => setReserveOpen(false)} onConfirm={handleConfirm} />
-
-      <Modal transparent animationType="slide" visible={filtersOpen} onRequestClose={() => setFiltersOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setFiltersOpen(false)}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
-            <Text style={styles.sheetTitle}>Filtros</Text>
-            <Text style={styles.sectionTitle}>Rating mínimo</Text>
-            <View style={styles.row}>
-              {[3, 4, 4.5].map((r) => (
-                <Pill key={r} label={`${r}+ ⭐`} active={fMinRating === r} onPress={() => setFMinRating(fMinRating === r ? null : (r as 3 | 4 | 4.5))} />
-              ))}
-            </View>
-            <View style={{ height: spacing.l }} />
-            <Pressable style={styles.reserveButton} onPress={() => setFiltersOpen(false)}>
-              <Text style={styles.reserveButtonText}>APLICAR FILTROS</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </View>
   );
 }
@@ -273,26 +252,13 @@ const styles = StyleSheet.create({
   name: { fontSize: 16, fontWeight: "700" },
   rating: { fontWeight: "700" },
   cardFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  reserveButtonSmall: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#22C55E",
-    paddingVertical: 6,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  reserveButton: {
-    backgroundColor: "#22C55E",
-    paddingVertical: 10,
-    alignItems: "center",
-    borderRadius: 8,
-  },
+  reserveButtonSmall: { flexDirection: "row", alignItems: "center", backgroundColor: "#22C55E", paddingVertical: 6, paddingHorizontal: 24, borderRadius: 8 },
+  reserveButton: { backgroundColor: "#22C55E", paddingVertical: 10, alignItems: "center", borderRadius: 8 },
   reserveButtonText: { color: "#fff", fontWeight: "700" },
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" },
   sheet: { backgroundColor: colors.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: spacing.xl, gap: spacing.s, maxHeight: "80%" },
   sheetTitle: { fontSize: 18, fontWeight: "700", marginBottom: spacing.s, color: colors.text },
   sectionTitle: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", marginTop: spacing.s, color: colors.muted },
-  row: { flexDirection: "row", flexWrap: "wrap", gap: spacing.s },
   calendarGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.s, marginBottom: spacing.s },
   dayCell: { width: "23%", aspectRatio: 1, borderWidth: 1, borderRadius: 12, padding: spacing.s, alignItems: "center", justifyContent: "center" },
   timeGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.s, marginTop: spacing.s },

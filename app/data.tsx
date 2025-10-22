@@ -59,13 +59,19 @@ export type TutorAvailability = {
   endTime: string;
   startDate: string;
   endDate: string;
+  active: boolean;
+  tutor: User & {
+    tutorSubjects?: {
+      subject: { id: number; name: string; iconUrl?: string | null };
+    }[];
+  };
 };
 
 // -------------------- Config --------------------
 
 export const getCurrentUserId = () => TEST_USER_ID;
 
-async function fetchJSON<T>(endpoint: string, options?: RequestInit): Promise<T> {
+export async function fetchJSON<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${endpoint}`, {
     headers: { "Content-Type": "application/json" },
     ...options,
@@ -105,12 +111,35 @@ export function useFetchAvailableSlots() {
   });
 }
 
+type ExtendedTutorAvailability = TutorAvailability & {
+  classSlots?: {
+    id: number;
+    tutorId: number;
+    date: string;
+    startTime: string;
+    endTime: string;
+    status: string;
+  }[];
+  tutor: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    rating?: number;
+    profilePhoto?: string | null;
+    tutorSubjects?: {
+      subject: { id: number; name: string; iconUrl?: string | null };
+    }[];
+  };
+};
+
 export function useFetchTutorAvailability() {
-  return useQuery({
+  return useQuery<ExtendedTutorAvailability[]>({
     queryKey: ["tutorAvailability"],
-    queryFn: () => fetchJSON<TutorAvailability[]>("/availability"),
+    queryFn: () => fetchJSON<ExtendedTutorAvailability[]>("/availability"),
   });
 }
+
 
 // -------------------- Mutations --------------------
 
