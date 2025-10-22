@@ -1,26 +1,55 @@
-import React from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
-import { getStudentById, levelStatsFromXp } from "../app/data";
-import type { ID } from "../app/data";
+import React, { useMemo } from "react";
+import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { useFetchUsers, levelStatsFromXp } from "../app/data";
+import type { User } from "../app/data";
 
 type Props = {
-  studentId: ID;
+  studentId: User["id"];
 };
 
 export default function UserXPCard({ studentId }: Props) {
-  const student = getStudentById(studentId);
-  if (!student) return null;
+  const { data: users, isLoading, isError } = useFetchUsers();
 
-  const { level, currentInLevel, toNext, progress } = levelStatsFromXp(student.xp);
+  const student = useMemo(
+    () => users?.find((u) => u.id === Number(studentId)),
+    [users, studentId]
+  );
+
+  if (isLoading)
+    return (
+      <View style={styles.loadingWrap}>
+        <ActivityIndicator color="#22C55E" />
+        <Text style={styles.loadingText}>Cargando perfil...</Text>
+      </View>
+    );
+
+  if (isError || !student)
+    return (
+      <View style={styles.loadingWrap}>
+        <Text style={styles.loadingText}>No se encontró el usuario</Text>
+      </View>
+    );
+
+  const xp = student.xpLevel ?? 0;
+  const { level, currentInLevel, toNext, progress } = levelStatsFromXp(xp);
   const percent = Math.round(progress * 100);
 
   return (
     <View style={styles.card}>
-      <Image source={student.profilePic} style={styles.avatar} />
+      <Image
+        source={
+          student.profilePhoto
+            ? { uri: student.profilePhoto }
+            : require("../assets/images/userProfiles/student1.jpeg")
+        }
+        style={styles.avatar}
+      />
 
       <View style={{ flex: 1, marginLeft: 12 }}>
         <View style={styles.nameRow}>
-          <Text style={styles.nameText}>{student.firstName} {student.lastName}</Text>
+          <Text style={styles.nameText}>
+            {student.firstName} {student.lastName}
+          </Text>
           <Text style={styles.levelText}>Nivel {level}</Text>
         </View>
 
@@ -110,7 +139,7 @@ const styles = StyleSheet.create({
   reviewButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#22C55E",
+    backgroundColor: "#525252ff",
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -125,5 +154,15 @@ const styles = StyleSheet.create({
   reviewButtonText: {
     color: "#fff",
     fontWeight: "700",
+  },
+  loadingWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  loadingText: {
+    color: "#CFE6FF",
+    fontSize: 14,
+    marginTop: 6,
   },
 });

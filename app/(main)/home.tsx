@@ -2,10 +2,10 @@ import React from "react";
 import { ScrollView, StyleSheet, Text } from "react-native";
 import { MyClassesList } from "../../components/myClassesList";
 import UserXPCard from "../../components/userXPCard";
-import type { ID } from "../data";
+import { TEST_USER_ID } from "@/config";
 
 export default function HomeScreen() {
-  const userId: ID = "s2"; // estudiante de ejemplo
+  const userId = TEST_USER_ID; // estudiante de ejemplo
 
   return (
     <ScrollView contentContainerStyle={styles.container}>

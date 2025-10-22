@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Switch, Pressable } from "react-native";
 import { Stack } from "expo-router";
-import PrimaryButton from "../../components/primaryButton";
 import EditFieldModal from "../../components/editFieldModal";
 import ChangePasswordModal from "../../components/changePasswordModal";
 import colors from "../../theme/colors";
