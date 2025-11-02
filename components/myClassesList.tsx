@@ -1,15 +1,15 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   View,
-  ActivityIndicator,
-  RefreshControl,
 } from "react-native";
-import { useFetchLessons } from "../app/data";
+import type { User } from "../hooks/data";
+import { useFetchLessons } from "../hooks/data";
 import { ClassCard } from "./classCard";
-import type { User } from "../app/data";
 
 export function MyClassesList({ userId }: { userId: User["id"] }) {
   const { data: lessons, isLoading, isError, refetch, isRefetching } = useFetchLessons();

@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { useFetchUsers, levelStatsFromXp } from "../app/data";
-import type { User } from "../app/data";
+import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import type { User } from "../hooks/data";
+import { levelStatsFromXp, useFetchUsers } from "../hooks/data";
 
 type Props = {
   studentId: User["id"];
@@ -144,6 +144,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     marginLeft: 8,
+    display: "none"   //DESHABILITADO POR AHORA
   },
   joystickIcon: {
     width: 16,

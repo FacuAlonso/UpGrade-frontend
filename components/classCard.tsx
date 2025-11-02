@@ -1,7 +1,7 @@
 import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
-import { formatDateTimeISO } from "../app/data";
-import type { Lesson } from "../app/data";
+import type { Lesson } from "../hooks/data";
+import { formatDateTimeISO } from "../hooks/data";
 
 type Props = { lesson: Lesson };
 
