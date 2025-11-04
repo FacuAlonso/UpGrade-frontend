@@ -1,40 +1,57 @@
-import type { User } from "@/hooks/data";
+import React, { useEffect, useMemo, useState } from "react";
+import { Modal, Pressable, StyleSheet, Text, View, ScrollView } from "react-native";
 import colors from "@/theme/colors";
 import spacing from "@/theme/spacing";
-import React, { useEffect, useMemo, useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
-
-const HOURS = Array.from({ length: 10 }).map((_, i) => `${String(9 + i).padStart(2, "0")}:00`);
-const weekdayFmt = new Intl.DateTimeFormat("es-AR", { weekday: "short" });
-const dayFmt = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit" });
-
-function getNextDays(n = 14) {
-  const today = new Date();
-  return Array.from({ length: n }).map((_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    return {
-      iso: d.toISOString().slice(0, 10),
-      dow: weekdayFmt.format(d),
-      dlabel: dayFmt.format(d),
-    };
-  });
-}
+import type { ClassSlot, Subject, User } from "@/hooks/data";
+import ConfirmationAnimation from "@/components/animations/confirmationAnimation";
 
 type Props = {
   teacher: User | null;
+  slots: ClassSlot[];
   open: boolean;
   onClose: () => void;
-  onConfirm: (payload: { teacherId: number; isoDate: string; startTime: string }) => void;
+  onConfirm: (payload: { slotIds: number[]; subjectId: number; modality: "ONLINE" | "ONSITE" }) => void;
 };
 
-export default function LessonBookModal({ teacher, open, onClose, onConfirm }: Props) {
-  const days = useMemo(() => getNextDays(14), []);
-  const [selectedDay, setSelectedDay] = useState(days[0]?.iso ?? "");
-  const [selectedHour, setSelectedHour] = useState<string | null>(null);
+const dfDate = new Intl.DateTimeFormat("es-AR", { weekday: "short", day: "2-digit", month: "2-digit" });
+
+function groupSlotsByDay(slots: ClassSlot[]) {
+  const map = new Map<string, ClassSlot[]>();
+  slots.forEach((s) => {
+    const d = new Date(s.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(s);
+  });
+  return Array.from(map.entries())
+    .map(([iso, items]) => ({
+      iso,
+      label: dfDate.format(new Date(iso)),
+      items: items.sort((a, b) => a.startTime.localeCompare(b.startTime)),
+    }))
+    .sort((a, b) => a.iso.localeCompare(b.iso));
+}
+
+export default function LessonBookModal({ teacher, slots, open, onClose, onConfirm }: Props) {
+  const [step, setStep] = useState<"slots" | "subject" | "confirm">("slots");
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [subjectId, setSubjectId] = useState<number | null>(null);
+  const [modality, setModality] = useState<"ONLINE" | "ONSITE">("ONLINE");
+  const [confirmed, setConfirmed] = useState(false);
+
+  const days = useMemo(() => groupSlotsByDay(slots), [slots]);
+  const subjects: Subject[] = useMemo(
+    () => (teacher?.tutorSubjects ?? []).map((ts) => ts.subject).sort((a, b) => a.name.localeCompare(b.name)),
+    [teacher]
+  );
 
   useEffect(() => {
-    if (!open) setSelectedHour(null);
+    if (!open) {
+      setSelected(new Set());
+      setSubjectId(null);
+      setStep("slots");
+      setModality("ONLINE");
+    }
   }, [open]);
 
   if (!teacher) return null;
@@ -42,85 +59,183 @@ export default function LessonBookModal({ teacher, open, onClose, onConfirm }: P
   return (
     <Modal transparent animationType="slide" visible={open} onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet}>
-          <Text style={styles.sheetTitle}>Reservar con {teacher.firstName}</Text>
-          <Text style={{ color: colors.muted, marginBottom: spacing.s }}>
-            Seleccioná día y horario
-          </Text>
+        <Pressable style={styles.sheet} onPress={() => {}}>
+          <Text style={styles.title}>Reservar con {teacher.firstName}</Text>
 
-          <Text style={styles.sectionTitle}>Día</Text>
-          <View style={styles.calendarGrid}>
-            {days.map((d) => {
-              const active = selectedDay === d.iso;
-              return (
-                <Pressable
-                  key={d.iso}
-                  style={[
-                    styles.dayCell,
-                    {
-                      borderColor: active ? colors.primary : colors.inputBorder,
-                      backgroundColor: active ? "#E8F8EE" : colors.background,
-                    },
-                  ]}
-                  onPress={() => setSelectedDay(d.iso)}
-                >
-                  <Text style={{ fontSize: 12, color: colors.muted, textTransform: "uppercase" }}>
-                    {d.dow}
-                  </Text>
-                  <Text style={{ fontWeight: "700", color: colors.text }}>{d.dlabel}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          {step === "slots" && (
+            <>
+              <Text style={styles.section}>Elegí uno o más horarios</Text>
+              <ScrollView contentContainerStyle={{ gap: spacing.m }}>
+                {days.map((d) => (
+                  <View key={d.iso} style={{ gap: spacing.s }}>
+                    <Text style={{ color: colors.muted, textTransform: "uppercase", fontWeight: "700" }}>{d.label}</Text>
+                    <View style={styles.grid}>
+                      {d.items.map((s) => {
+                        const active = selected.has(s.id);
+                        return (
+                          <Pressable
+                            key={s.id}
+                            onPress={() => {
+                              const next = new Set(selected);
+                              active ? next.delete(s.id) : next.add(s.id);
+                              setSelected(next);
+                            }}
+                            style={[
+                              styles.pill,
+                              {
+                                borderColor: active ? colors.primary : colors.inputBorder,
+                                backgroundColor: active ? "#E8F8EE" : colors.background,
+                              },
+                            ]}
+                          >
+                            <Text style={{ color: colors.text, fontWeight: "600" }}>
+                              {s.startTime}–{s.endTime}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
 
-          <Text style={[styles.sectionTitle, { marginTop: spacing.m }]}>Horario</Text>
-          <View style={styles.timeGrid}>
-            {HOURS.map((h) => {
-              const active = selectedHour === h;
-              return (
-                <Pressable
-                  key={h}
-                  onPress={() => setSelectedHour(h)}
-                  style={[
-                    styles.timeCell,
-                    {
-                      borderColor: active ? colors.primary : colors.inputBorder,
-                      backgroundColor: active ? "#E8F8EE" : colors.background,
-                    },
-                  ]}
-                >
-                  <Text style={{ color: colors.text, fontWeight: "600" }}>{h}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+              <Pressable
+                disabled={selected.size === 0}
+                style={[styles.cta, { opacity: selected.size === 0 ? 0.5 : 1 }]}
+                onPress={() => setStep("subject")}
+              >
+                <Text style={styles.callToActionsText}>CONTINUAR</Text>
+              </Pressable>
+            </>
+          )}
 
-          <View style={{ height: spacing.l }} />
-          <Pressable
-            style={styles.reserveButton}
-            onPress={() => {
-              if (!selectedHour) return;
-              onConfirm({ teacherId: teacher.id, isoDate: selectedDay, startTime: selectedHour });
-              onClose();
-            }}
-          >
-            <Text style={styles.reserveButtonText}>CONFIRMAR RESERVA</Text>
-          </Pressable>
+          {step === "subject" && (
+            <>
+              <Text style={styles.section}>Elegí la materia</Text>
+              <View style={styles.grid}>
+                {subjects.map((sub) => {
+                  const active = subjectId === sub.id;
+                  return (
+                    <Pressable
+                      key={sub.id}
+                      onPress={() => setSubjectId(sub.id)}
+                      style={[
+                        styles.pill,
+                        {
+                          borderColor: active ? colors.primary : colors.inputBorder,
+                          backgroundColor: active ? "#E8F8EE" : colors.background,
+                        },
+                      ]}
+                    >
+                      <Text style={{ color: colors.text, fontWeight: "600" }}>{sub.name}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <Text style={[styles.section, { marginTop: spacing.m }]}>Modalidad</Text>
+              <View style={styles.grid}>
+                {(["ONLINE", "ONSITE"] as const).map((m) => {
+                  const active = modality === m;
+                  return (
+                    <Pressable
+                      key={m}
+                      onPress={() => setModality(m)}
+                      style={[
+                        styles.pill,
+                        {
+                          borderColor: active ? colors.primary : colors.inputBorder,
+                          backgroundColor: active ? colors.surfaceGreen : colors.background,
+                        },
+                      ]}
+                    >
+                      <Text style={{ color: colors.text, fontWeight: "600" }}>
+                        {m === "ONLINE" ? "Virtual" : "Presencial"}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <View style={{ height: spacing.l }} />
+              <Pressable
+                disabled={!subjectId}
+                style={[styles.cta, { opacity: subjectId ? 1 : 0.5 }]}
+                onPress={() => setStep("confirm")}
+              >
+                <Text style={styles.callToActionsText}>CONTINUAR</Text>
+              </Pressable>
+            </>
+          )}
+
+          {step === "confirm" && (
+            <>
+              <Text style={styles.section}>Confirmación</Text>
+              <Text style={{ color: colors.text }}>
+                Profesor: <Text style={{ fontWeight: "700" }}>{teacher.firstName} {teacher.lastName}</Text>
+              </Text>
+              <Text style={{ color: colors.text }}>
+                Materia: <Text style={{ fontWeight: "700" }}>{subjects.find((s) => s.id === subjectId!)?.name}</Text>
+              </Text>
+              <Text style={{ color: colors.text }}>
+                Modalidad: <Text style={{ fontWeight: "700" }}>{modality === "ONLINE" ? "Virtual" : "Presencial"}</Text>
+              </Text>
+              <Text style={{ color: colors.text, marginTop: spacing.s, fontWeight: "700" }}>Horarios:</Text>
+              <View style={{ gap: 6, marginTop: 6 }}>
+                {Array.from(selected).map((id) => {
+                  const s = slots.find((x) => x.id === id)!;
+                  const d = new Date(s.date);
+                  const day = dfDate.format(d);
+                  const dayCap = day.charAt(0).toUpperCase() + day.slice(1);
+                  const label = `${dayCap} · ${s.startTime}-${s.endTime}`;
+                  return (
+                    <Text key={id} style={{ color: colors.text }}>
+                      • {label}
+                    </Text>
+                  );
+                })}
+              </View>
+
+              <View style={{ height: spacing.l }} />
+              <Pressable
+                style={styles.cta}
+                onPress={() => {
+                  onConfirm({ slotIds: Array.from(selected), subjectId: subjectId!, modality });
+                  setConfirmed(true);
+                }}
+              >
+                <Text style={styles.callToActionsText}>CONFIRMAR RESERVA</Text>
+              </Pressable>
+            </>
+          )}
         </Pressable>
       </Pressable>
+
+      <ConfirmationAnimation
+        visible={confirmed}
+        onFinish={() => {
+          onClose();
+          setConfirmed(false);
+        }}
+      />
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: colors.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: spacing.xl, gap: spacing.s, maxHeight: "80%" },
-  sheetTitle: { fontSize: 18, fontWeight: "700", marginBottom: spacing.s, color: colors.text },
-  sectionTitle: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", marginTop: spacing.s, color: colors.muted },
-  calendarGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.s, marginBottom: spacing.s },
-  dayCell: { width: "23%", aspectRatio: 1, borderWidth: 1, borderRadius: 12, padding: spacing.s, alignItems: "center", justifyContent: "center" },
-  timeGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.s, marginTop: spacing.s },
-  timeCell: { paddingVertical: 10, paddingHorizontal: spacing.m, borderRadius: 12, borderWidth: 1 },
-  reserveButton: { backgroundColor: "#22C55E", paddingVertical: 10, alignItems: "center", borderRadius: 8 },
-  reserveButtonText: { color: "#fff", fontWeight: "700" },
+  backdrop: { flex: 1, justifyContent: "flex-end" },
+  sheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: spacing.xl,
+    gap: spacing.s,
+    maxHeight: "85%",
+  },
+  title: { fontSize: 18, fontWeight: "700", color: colors.text, marginBottom: spacing.s },
+  section: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", color: colors.muted, marginTop: spacing.s },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.s },
+  pill: { paddingVertical: 10, paddingHorizontal: spacing.m, borderRadius: 12, borderWidth: 1 },
+  cta: { backgroundColor: colors.primary, paddingVertical: 12, alignItems: "center", borderRadius: 10, marginTop: spacing.m },
+  callToActionsText: { color: "white", fontWeight: "700" },
 });

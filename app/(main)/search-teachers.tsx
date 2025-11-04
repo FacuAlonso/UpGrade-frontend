@@ -1,110 +1,99 @@
-import React, { useMemo } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View, Image, RefreshControl } from "react-native";
+import { Stack } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
+import { ActivityIndicator, View, Text } from "react-native";
+import FormTextInput from "@/components/formTextInput";
 import colors from "@/theme/colors";
 import spacing from "@/theme/spacing";
-import type { User, TutorAvailability } from "@/hooks/data";
-import TeacherList from "@/components/searchTeacherList";
+import { getCurrentUserId, type User, type TutorAvailability, type ClassSlot, fetchJSON } from "@/hooks/data";
+import { useFetchTutorAvailability, useCreateLesson } from "@/hooks/data";
+import SearchTeacherList from "@/components/searchTeacherList";
 import LessonBookModal from "@/components/lessonBookModal";
 
+export default function SearchTeachersScreen() {
+  const { data: availabilities, isLoading, refetch, isRefetching } = useFetchTutorAvailability();
+  const [query, setQuery] = useState("");
+  const [reserveOpen, setReserveOpen] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState<User | null>(null);
+  const [teacherSlots, setTeacherSlots] = useState<ClassSlot[]>([]);
+  const { mutateAsync: createLesson } = useCreateLesson();
 
-type Props = {
-  tutors: { tutor: User; slots: TutorAvailability[] }[];
-  refreshing: boolean;
-  onRefresh: () => void;
-  onSelectTutor: (tutor: User) => void;
-};
+  const tutors = useMemo(() => {
+    if (!availabilities) return [];
+    const map = new Map<number, { tutor: User; slots: TutorAvailability[] }>();
+    availabilities
+      .filter((a) => a.active)
+      .forEach((a) => {
+        if (!map.has(a.tutorId)) map.set(a.tutorId, { tutor: a.tutor, slots: [] });
+        map.get(a.tutorId)!.slots.push(a);
+      });
+    return Array.from(map.values())
+      .filter(({ tutor }) =>
+        !query
+          ? true
+          : `${tutor.firstName} ${tutor.lastName}`.toLowerCase().includes(query.toLowerCase())
+      )
+      .sort((a, b) => (b.tutor.rating ?? 0) - (a.tutor.rating ?? 0));
+  }, [availabilities, query]);
 
-export default function TeacherListScreen({ tutors, refreshing, onRefresh, onSelectTutor }: Props) {
+  const handleOpenReserve = useCallback(async (t: User) => {
+    setSelectedTeacher(t);
+    const slots = await fetchJSON<ClassSlot[]>(`/slots?tutorId=${t.id}&status=AVAILABLE`);
+    setTeacherSlots(slots);
+    setReserveOpen(true);
+  }, []);
+
+  const handleConfirmReserve = useCallback(
+    async (payload: { slotIds: number[]; subjectId: number; modality: "ONLINE" | "ONSITE" }) => {
+      const studentId = getCurrentUserId();
+      if (!selectedTeacher) return;
+
+      for (const slotId of payload.slotIds) {
+        await createLesson({
+          slotId,
+          studentId,
+          tutorId: selectedTeacher.id,
+          subjectId: payload.subjectId,
+          modality: payload.modality,
+          timestamp: teacherSlots.find((s) => s.id === slotId)?.date ?? new Date().toISOString(),
+        });
+      }
+
+      setReserveOpen(false);
+      setSelectedTeacher(null);
+      setTeacherSlots([]);
+      await refetch();
+    },
+    [createLesson, refetch, selectedTeacher, teacherSlots]
+  );
+
+  if (isLoading && !isRefetching) {
+    return (
+      <View style={{ flex: 1, padding: spacing.xl, alignItems: "center", justifyContent: "center", backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ color: colors.muted, marginTop: 8 }}>Cargando profesores...</Text>
+      </View>
+    );
+  }
+
   return (
-    <FlatList
-      data={tutors}
-      keyExtractor={(item) => item.tutor.id.toString()}
-      contentContainerStyle={{ paddingBottom: spacing.xl }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      renderItem={({ item }) => (
-        <Pressable style={[styles.card, { borderColor: colors.inputBorder }]}>
-          <View style={styles.cardHeader}>
-            {item.tutor.profilePhoto ? (
-              <Image source={{ uri: item.tutor.profilePhoto }} style={styles.avatarImage} />
-            ) : (
-              <View style={styles.avatar}>
-                <Text style={{ color: colors.text, fontWeight: "700" }}>{item.tutor.firstName[0]}</Text>
-              </View>
-            )}
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.name, { color: colors.text }]}>
-                {item.tutor.firstName} {item.tutor.lastName}
-              </Text>
-              <Text style={{ color: colors.muted }}>
-                {item.slots
-                  .map(
-                    (s) =>
-                      `${["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][s.weekday]} ${s.startTime}-${s.endTime}`
-                  )
-                  .join(" · ")}
-              </Text>
-            </View>
-            <View style={{ alignItems: "flex-end" }}>
-              <Text style={[styles.rating, { color: colors.text }]}>
-                {(item.tutor.rating ?? 5).toFixed(1)} ⭐
-              </Text>
-            </View>
-          </View>
+    <View style={{ flex: 1, padding: spacing.xl, backgroundColor: colors.background }}>
+      <Stack.Screen options={{ title: "Buscar profesores" }} />
+      <FormTextInput placeholder="Buscar por nombre" value={query} onChangeText={setQuery} returnKeyType="search" />
 
-          <View style={styles.cardFooter}>
-            <Text style={{ color: colors.muted }}>Disponible</Text>
-            <Pressable
-              style={styles.reserveButtonSmall}
-              onPress={() => onSelectTutor(item.tutor)}
-            >
-              <Text style={styles.reserveButtonText}>RESERVAR</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      )}
-    />
+      <SearchTeacherList
+        tutors={tutors}
+        refreshing={!!isRefetching}
+        onRefresh={refetch}
+        onSelectTutor={handleOpenReserve}
+      />
+
+      <LessonBookModal
+        teacher={selectedTeacher}
+        open={reserveOpen}
+        slots={teacherSlots}
+        onClose={() => setReserveOpen(false)}
+        onConfirm={handleConfirmReserve}
+      />
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: spacing.l,
-    marginBottom: spacing.m,
-    gap: spacing.m,
-  },
-  cardHeader: { flexDirection: "row", gap: spacing.m, alignItems: "center" },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#E5E7EB",
-  },
-  avatarImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: "#22C55E",
-  },
-  name: { fontSize: 16, fontWeight: "700" },
-  rating: { fontWeight: "700" },
-  cardFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  reserveButtonSmall: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#22C55E",
-    paddingVertical: 6,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  reserveButtonText: { color: "#fff", fontWeight: "700" },
-});

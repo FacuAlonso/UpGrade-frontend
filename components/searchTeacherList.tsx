@@ -1,100 +1,68 @@
-// app/(main)/search-teachers.tsx
-
-import React, { useState, useMemo, useCallback } from "react";
-import { View, ActivityIndicator, Text, StyleSheet } from "react-native";
-import { Stack } from "expo-router";
-import { useFetchTutorAvailability, useCreateLesson } from "@/hooks/data";
-import FormTextInput from "@/components/formTextInput";
-import SearchTeacherList from "@/components/searchTeacherList";
-import LessonBookModal from "@/components/lessonBookModal";
+import type { TutorAvailability, User } from "@/hooks/data";
 import colors from "@/theme/colors";
 import spacing from "@/theme/spacing";
-import type { User, TutorAvailability } from "@/hooks/data";
+import React from "react";
+import { FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 
-export default function SearchTeachersScreen() {
-  const { data: availabilities, isLoading, refetch, isRefetching } = useFetchTutorAvailability();
-  const { mutate: createLesson } = useCreateLesson();
+type Props = {
+  tutors: { tutor: User; slots: TutorAvailability[] }[];
+  refreshing: boolean;
+  onRefresh: () => void;
+  onSelectTutor: (tutor: User) => void;
+};
 
-  const [query, setQuery] = useState("");
-  const [selectedTeacher, setSelectedTeacher] = useState<User | null>(null);
-  const [reserveOpen, setReserveOpen] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
-  }, [refetch]);
-
-  // Agrupar por tutor
-  const tutors = useMemo(() => {
-    if (!availabilities) return [];
-    const map = new Map<number, { tutor: User; slots: TutorAvailability[] }>();
-    availabilities
-      .filter((a) => a.active)
-      .forEach((a) => {
-        if (!map.has(a.tutorId)) map.set(a.tutorId, { tutor: a.tutor, slots: [] });
-        map.get(a.tutorId)!.slots.push(a);
-      });
-
-    return Array.from(map.values()).filter(({ tutor }) =>
-      !query
-        ? true
-        : tutor.firstName.toLowerCase().includes(query.toLowerCase()) ||
-          tutor.lastName.toLowerCase().includes(query.toLowerCase())
-    );
-  }, [availabilities, query]);
-
-  const handleConfirm = (p: { teacherId: number; isoDate: string; startTime: string }) => {
-    createLesson({
-      slotId: 0,
-      studentId: 1,
-      tutorId: p.teacherId,
-      subjectId: 1,
-      modality: "ONLINE",
-      timestamp: `${p.isoDate}T${p.startTime}:00`,
-    });
-  };
-
-  if (isLoading && !isRefetching) {
-    return (
-      <View style={[styles.container, { alignItems: "center", justifyContent: "center" }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ color: colors.muted }}>Cargando profesores...</Text>
-      </View>
-    );
-  }
-
+export default function SearchTeacherList({ tutors, refreshing, onRefresh, onSelectTutor }: Props) {
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: "Buscar profesores" }} />
-      <FormTextInput
-        placeholder="Buscar por nombre"
-        value={query}
-        onChangeText={setQuery}
-        returnKeyType="search"
-      />
+    <FlatList
+      data={tutors}
+      keyExtractor={(item) => item.tutor.id.toString()}
+      contentContainerStyle={{ paddingBottom: spacing.xl }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      renderItem={({ item }) => (
+        <Pressable style={[styles.card, { borderColor: colors.inputBorder }]}>
+          <View style={styles.cardHeader}>
+            {item.tutor.profilePhoto ? (
+              <Image source={{ uri: item.tutor.profilePhoto }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={{ color: colors.text, fontWeight: "700" }}>{item.tutor.firstName[0]}</Text>
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.name, { color: colors.text }]}>
+                {item.tutor.firstName} {item.tutor.lastName}
+              </Text>
+              <Text style={{ color: colors.muted }}>
+                {item.slots
+                  .map((s) => `${["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][s.weekday]} ${s.startTime}-${s.endTime}`)
+                  .join(" · ")}
+              </Text>
+            </View>
+            <View style={{ alignItems: "flex-end" }}>
+              <Text style={[styles.rating, { color: colors.text }]}>{(item.tutor.rating ?? 5).toFixed(1)} ⭐</Text>
+            </View>
+          </View>
 
-      <SearchTeacherList
-        tutors={tutors}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        onSelectTutor={(t) => {
-          setSelectedTeacher(t);
-          setReserveOpen(true);
-        }}
-      />
-
-      <LessonBookModal
-        teacher={selectedTeacher}
-        open={reserveOpen}
-        onClose={() => setReserveOpen(false)}
-        onConfirm={handleConfirm}
-      />
-    </View>
+          <View style={styles.cardFooter}>
+            <Text style={{ color: colors.muted }}>Disponible</Text>
+            <Pressable style={styles.reserveButtonSmall} onPress={() => onSelectTutor(item.tutor)}>
+              <Text style={styles.reserveButtonText}>RESERVAR</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      )}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: spacing.xl, backgroundColor: colors.background },
+  card: { backgroundColor: colors.surface, borderWidth: 1, borderRadius: 16, padding: spacing.l, marginBottom: spacing.m, gap: spacing.m },
+  cardHeader: { flexDirection: "row", gap: spacing.m, alignItems: "center" },
+  avatar: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "#E5E7EB" },
+  avatarImage: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: "#22C55E" },
+  name: { fontSize: 16, fontWeight: "700" },
+  rating: { fontWeight: "700" },
+  cardFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  reserveButtonSmall: { flexDirection: "row", alignItems: "center", backgroundColor: colors.primary, paddingVertical: 6, paddingHorizontal: 24, borderRadius: 8 },
+  reserveButtonText: { color: "#fff", fontWeight: "700" },
 });

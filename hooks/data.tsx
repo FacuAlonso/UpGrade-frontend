@@ -1,8 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_URL, TEST_USER_ID } from "../config";
 
-// -------------------- Tipos --------------------
-
 export type ID = number;
 
 export type User = {
@@ -13,6 +11,7 @@ export type User = {
   xpLevel: number;
   rating?: number | null;
   profilePhoto?: string | null;
+  tutorSubjects?: { subject: Subject }[];
 };
 
 export type Subject = {
@@ -32,11 +31,9 @@ export type Lesson = {
   modality: Modality;
   timestamp: string;
   status: "PENDING" | "DONE" | "CANCELLED";
-  
   tutor?: User;
   student?: User;
   subject?: Subject;
-  slot?: ClassSlot;
 };
 
 export type ClassSlot = {
@@ -48,7 +45,6 @@ export type ClassSlot = {
   status: "AVAILABLE" | "RESERVED" | "CANCELLED";
   deleted: boolean;
   tutor: User;
-  subject?: Subject | null;
 };
 
 export type TutorAvailability = {
@@ -60,11 +56,7 @@ export type TutorAvailability = {
   startDate: string;
   endDate: string;
   active: boolean;
-  tutor: User & {
-    tutorSubjects?: {
-      subject: { id: number; name: string; iconUrl?: string | null };
-    }[];
-  };
+  tutor: User;
 };
 
 // -------------------- Config --------------------
@@ -72,12 +64,30 @@ export type TutorAvailability = {
 export const getCurrentUserId = () => TEST_USER_ID;
 
 export async function fetchJSON<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
-  return res.json();
+  try {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      headers: { "Content-Type": "application/json" },
+      ...options,
+    });
+
+    const text = await res.text();
+    let data: any;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      data = { raw: text };
+    }
+
+    if (!res.ok) {
+      const msg = typeof data === "object" && data.error ? data.error : res.statusText;
+      throw new Error(`HTTP ${res.status}: ${msg}`);
+    }
+
+    return data as T;
+  } catch (error) {
+    console.error("❌ fetchJSON error:", error);
+    throw error;
+  }
 }
 
 
@@ -104,52 +114,53 @@ export function useFetchLessons() {
   });
 }
 
-export function useFetchAvailableSlots() {
+export function useFetchTutorAvailability() {
+  return useQuery({
+    queryKey: ["availability"],
+    queryFn: () => fetchJSON<TutorAvailability[]>("/availability"),
+  });
+}
+
+export function useFetchSlots() {
   return useQuery({
     queryKey: ["slots"],
-    queryFn: () => fetchJSON<ClassSlot[]>("/availability"),
+    queryFn: () => fetchJSON<ClassSlot[]>("/slots"),
   });
 }
 
-type ExtendedTutorAvailability = TutorAvailability & {
-  classSlots?: {
-    id: number;
-    tutorId: number;
-    date: string;
-    startTime: string;
-    endTime: string;
-    status: string;
-  }[];
-  tutor: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    rating?: number;
-    profilePhoto?: string | null;
-    tutorSubjects?: {
-      subject: { id: number; name: string; iconUrl?: string | null };
-    }[];
-  };
-};
-
-export function useFetchTutorAvailability() {
-  return useQuery<ExtendedTutorAvailability[]>({
-    queryKey: ["tutorAvailability"],
-    queryFn: () => fetchJSON<ExtendedTutorAvailability[]>("/availability"),
-  });
-}
-
-
-// -------------------- Mutations --------------------
+// -------------------- Escrituras --------------------
 
 export function useCreateUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: { firstName: string; lastName: string; email: string }) =>
-      fetchJSON<User>("/users", {
+      fetchJSON<User>("/users/create", {
         method: "POST",
         body: JSON.stringify(data),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
+
+export function useUpdateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<User> & { id: number }) =>
+      fetchJSON<User>("/users/update", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
+
+export function useDeleteUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      fetchJSON<{ message: string }>("/users/delete", {
+        method: "POST",
+        body: JSON.stringify({ id }),
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
   });
@@ -159,7 +170,7 @@ export function useCreateSubject() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: { name: string; iconUrl?: string }) =>
-      fetchJSON<Subject>("/subjects", {
+      fetchJSON<Subject>("/subjects/create", {
         method: "POST",
         body: JSON.stringify(data),
       }),
@@ -189,7 +200,26 @@ export function useCreateLesson() {
   });
 }
 
-// -------------------- Helpers --------------------
+export function useCreateAvailability() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      tutorId: number;
+      weekday: number;
+      startTime: string;
+      endTime: string;
+      startDate: string;
+      endDate: string;
+    }) =>
+      fetchJSON("/availability/create", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["availability"] }),
+  });
+}
+
+// -------------------- Auxiliares --------------------
 
 export function levelStatsFromXp(xp: number) {
   const level = Math.floor(Math.sqrt(xp / 100)) + 1;
@@ -214,38 +244,3 @@ export function formatDateTimeISO(iso: string, locale: string = "es-AR") {
   }).format(dt);
   return `${date} · ${time}`;
 }
-
-// -------------------- Lógica de filtrado local --------------------
-
-export function filterSlotsBySubjectAndTutor(
-  slots: ClassSlot[],
-  subjects: Subject[],
-  searchSubjectId?: number,
-  searchTutorName?: string
-) {
-  return slots.filter((slot) => {
-    const tutorName = `${slot.tutor.firstName} ${slot.tutor.lastName}`.toLowerCase();
-    const matchesTutor = searchTutorName
-      ? tutorName.includes(searchTutorName.toLowerCase())
-      : true;
-    const matchesSubject =
-      searchSubjectId && slot.subject
-        ? slot.subject.id === searchSubjectId
-        : true;
-    return matchesTutor && matchesSubject && slot.status === "AVAILABLE";
-  });
-}
-
-export default {
-  useFetchUsers,
-  useFetchSubjects,
-  useFetchLessons,
-  useFetchAvailableSlots,
-  useFetchTutorAvailability,
-  useCreateUser,
-  useCreateSubject,
-  useCreateLesson,
-  filterSlotsBySubjectAndTutor,
-  levelStatsFromXp,
-  formatDateTimeISO,
-};

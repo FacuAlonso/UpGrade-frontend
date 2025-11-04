@@ -6,4 +6,5 @@ export default {
   muted: "#6B7280",
   inputBorder: "#D1D5DB",
   surface: "#F9FAFB",
+  surfaceGreen: "#E8F8EE"
 };
