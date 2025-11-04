@@ -8,12 +8,14 @@ type Props = { lesson: Lesson };
 export function ClassCard({ lesson }: Props) {
   const subjectName = lesson.subject?.name ?? "Materia";
   const tutorName = `${lesson.tutor?.firstName ?? ""} ${lesson.tutor?.lastName ?? ""}`.trim();
-  const iconUrl = lesson.subject?.iconUrl;
+  const subjectIcon = lesson.subject?.iconUrl
+    ? { uri: lesson.subject.iconUrl }
+    : require("../assets/images/subjectIcons/defaultNoImage.png")
 
   return (
     <View style={cardStyles.card}>
-      {iconUrl ? (
-        <Image source={{ uri: iconUrl }} style={cardStyles.icon} />
+      {subjectIcon ? (
+        <Image source={subjectIcon} style={cardStyles.icon} />
       ) : (
         <View style={[cardStyles.icon, { backgroundColor: "#e5e7eb" }]} />
       )}

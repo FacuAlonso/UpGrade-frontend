@@ -40,7 +40,7 @@ export default function UserXPCard({ studentId }: Props) {
         source={
           student.profilePhoto
             ? { uri: student.profilePhoto }
-            : require("../assets/images/userProfiles/student1.jpeg")
+            : require("../assets/images/userProfiles/defaultNoImage.png")
         }
         style={styles.avatar}
       />

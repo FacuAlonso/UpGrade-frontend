@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { API_URL, TEST_USER_ID } from "../config";
+import { TEST_USER_ID } from "../config";
 
 export type ID = number;
 
@@ -65,7 +65,7 @@ export const getCurrentUserId = () => TEST_USER_ID;
 
 export async function fetchJSON<T>(endpoint: string, options?: RequestInit): Promise<T> {
   try {
-    const res = await fetch(`${API_URL}${endpoint}`, {
+    const res = await fetch(`${process.env.EXPO_PUBLIC_DB_API_URL}${endpoint}`, {
       headers: { "Content-Type": "application/json" },
       ...options,
     });
