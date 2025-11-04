@@ -1,26 +1,33 @@
 import React, { useState } from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, Alert } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import FormTextInput from "../../components/formTextInput";
 import PrimaryButton from "../../components/primaryButton";
 import BackButton from "../../components/backButton";
+import { useAuth } from "../../hooks/AuthContext";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { login } = useAuth(); 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     if (!email || !password) return;
-    router.replace("/home"); 
+    try {
+      await login(email.trim(), password); 
+      router.replace("/home");           
+    } catch (e: any) {
+      Alert.alert("Error", e?.response?.data?.error ?? "No se pudo iniciar sesión");
+    }
   };
 
   return (
     <KeyboardAwareScrollView
       contentContainerStyle={styles.container}
-      extraScrollHeight={60}         
-      enableOnAndroid={true}          
+      extraScrollHeight={60}
+      enableOnAndroid={true}
       keyboardShouldPersistTaps="handled"
     >
       <BackButton />

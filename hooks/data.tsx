@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { TEST_USER_ID } from "../config";
+import { API_URL } from "../config";
+import * as SecureStore from "expo-secure-store";
+import { useAuth } from "./AuthContext";
 
 export type ID = number;
 
@@ -61,13 +63,24 @@ export type TutorAvailability = {
 
 // -------------------- Config --------------------
 
-export const getCurrentUserId = () => TEST_USER_ID;
+export const useCurrentUserId = () => {
+  const { user } = useAuth();
+  const id = user?.id ?? user?.sub; // puede venir como string
+  return id !== undefined && id !== null ? Number(id) : undefined;
+};
 
 export async function fetchJSON<T>(endpoint: string, options?: RequestInit): Promise<T> {
   try {
-    const res = await fetch(`${process.env.EXPO_PUBLIC_DB_API_URL}${endpoint}`, {
-      headers: { "Content-Type": "application/json" },
+    const token = await SecureStore.getItemAsync("token");
+    const headers = {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options?.headers ?? {}),
+    };
+
+    const res = await fetch(`${API_URL}${endpoint}`, {
       ...options,
+      headers,
     });
 
     const text = await res.text();

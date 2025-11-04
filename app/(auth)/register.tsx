@@ -1,29 +1,46 @@
 import React, { useState } from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import FormTextInput from "../../components/formTextInput";
 import PrimaryButton from "../../components/primaryButton";
 import BackButton from "../../components/backButton";
+import { useAuth } from "../../hooks/AuthContext"; 
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { register } = useAuth(); 
   const [firstName, setFirstName] = useState("");
   const [lastName,  setLastName]  = useState("");
   const [email,     setEmail]     = useState("");
   const [password,  setPassword]  = useState("");
   const [repeat,    setRepeat]    = useState("");
+  const [loading,   setLoading]   = useState(false);
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     if (!email || !password || password !== repeat) return;
-    router.replace("/home");
+    setLoading(true);
+    try {
+      await register({
+        email: email.trim(),
+        password,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+      });                          
+      router.replace("/home");     
+    } catch (e: any) {
+      const err = e?.response?.data;
+      Alert.alert("Error", err?.error ?? "No se pudo registrar");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <KeyboardAwareScrollView
       contentContainerStyle={styles.container}
-      extraScrollHeight={60}             
-      enableOnAndroid={true}             
+      extraScrollHeight={60}
+      enableOnAndroid={true}
       keyboardShouldPersistTaps="handled"
     >
       <BackButton />
@@ -47,7 +64,7 @@ export default function RegisterScreen() {
         invalid={!!repeat && repeat !== password}
       />
 
-      <PrimaryButton label="Registrarse" onPress={onSubmit} />
+      <PrimaryButton label={loading ? "Creando..." : "Registrarse"} onPress={onSubmit} />
     </KeyboardAwareScrollView>
   );
 }

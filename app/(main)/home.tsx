@@ -2,19 +2,19 @@ import React from "react";
 import { ScrollView, StyleSheet, Text } from "react-native";
 import { MyClassesList } from "../../components/myClassesList";
 import UserXPCard from "../../components/userXPCard";
-import { TEST_USER_ID } from "@/config";
+import { useAuth } from "../../hooks/AuthContext";
 
 export default function HomeScreen() {
-  const userId = TEST_USER_ID; // estudiante de ejemplo
+  const { user } = useAuth();          
+  const userId = Number(user?.id || user?.sub);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Home</Text>
-      <UserXPCard studentId={userId} />
+      {userId && <UserXPCard studentId={userId} />}   
 
       <Text style={styles.subtitle}>Mis clases</Text>
-      <MyClassesList userId={userId} />
-
+      {userId && <MyClassesList userId={userId} />}  
     </ScrollView>
   );
 }
