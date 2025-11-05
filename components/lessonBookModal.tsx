@@ -4,6 +4,7 @@ import colors from "@/theme/colors";
 import spacing from "@/theme/spacing";
 import type { ClassSlot, Subject, User } from "@/hooks/data";
 import ConfirmationAnimation from "@/components/animations/confirmationAnimation";
+import { useAuth } from "@/hooks/useAuth"; 
 
 type Props = {
   teacher: User | null;
@@ -61,7 +62,6 @@ export default function LessonBookModal({ teacher, slots, open, onClose, onConfi
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={() => {}}>
           <Text style={styles.title}>Reservar con {teacher.firstName}</Text>
-
           {step === "slots" && (
             <>
               <Text style={styles.section}>Elegí uno o más horarios</Text>
@@ -77,7 +77,11 @@ export default function LessonBookModal({ teacher, slots, open, onClose, onConfi
                             key={s.id}
                             onPress={() => {
                               const next = new Set(selected);
-                              active ? next.delete(s.id) : next.add(s.id);
+                              if (active) {
+                                next.delete(s.id);
+                              } else {
+                                next.add(s.id);
+                              }
                               setSelected(next);
                             }}
                             style={[
@@ -186,8 +190,7 @@ export default function LessonBookModal({ teacher, slots, open, onClose, onConfi
                   const s = slots.find((x) => x.id === id)!;
                   const d = new Date(s.date);
                   const day = dfDate.format(d);
-                  const dayCap = day.charAt(0).toUpperCase() + day.slice(1);
-                  const label = `${dayCap} · ${s.startTime}-${s.endTime}`;
+                  const label = `${day.charAt(0).toUpperCase() + day.slice(1)} · ${s.startTime}-${s.endTime}`;
                   return (
                     <Text key={id} style={{ color: colors.text }}>
                       • {label}

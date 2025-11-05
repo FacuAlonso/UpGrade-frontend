@@ -1,43 +1,53 @@
-import React from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
-import type { Lesson } from "../hooks/data";
-import { formatDateTimeISO } from "../hooks/data";
+import React, { useState } from "react";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Lesson } from "@/hooks/data";
+import { formatDateTimeISO } from "@/utils/formatDate";
+import ClassDetailsModal from "./classDetailsModal";
 
-type Props = { lesson: Lesson };
+type Props = {
+  lesson: Lesson;
+  onCancelled?: () => void;
+};
 
-export function ClassCard({ lesson }: Props) {
+export default function ClassCard({ lesson, onCancelled }: Props) {
+  const [open, setOpen] = useState(false);
+
   const subjectName = lesson.subject?.name ?? "Materia";
   const tutorName = `${lesson.tutor?.firstName ?? ""} ${lesson.tutor?.lastName ?? ""}`.trim();
   const subjectIcon = lesson.subject?.iconUrl
     ? { uri: lesson.subject.iconUrl }
-    : require("../assets/images/subjectIcons/defaultNoImage.png")
+    : require("../assets/images/subjectIcons/defaultNoImage.png");
 
   return (
-    <View style={cardStyles.card}>
-      {subjectIcon ? (
-        <Image source={subjectIcon} style={cardStyles.icon} />
-      ) : (
-        <View style={[cardStyles.icon, { backgroundColor: "#e5e7eb" }]} />
-      )}
+    <>
+      <Pressable style={styles.card} onPress={() => setOpen(true)}>
+        <Image source={subjectIcon} style={styles.icon} />
 
-      <View style={{ flex: 1 }}>
-        <Text style={cardStyles.title}>{subjectName}</Text>
-        <Text style={cardStyles.subtitle}>{tutorName || "Profesor"}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>{subjectName}</Text>
+          <Text style={styles.subtitle}>{tutorName || "Profesor"}</Text>
 
-        <View style={cardStyles.row}>
-          <Text style={chipStyles.chip}>
-            {lesson.modality === "ONLINE" ? "Virtual" : "Presencial"}
-          </Text>
-          <Text style={cardStyles.date}>
-            {formatDateTimeISO(lesson.timestamp)}
-          </Text>
+          <View style={styles.row}>
+            <Text style={styles.chip}>
+              {lesson.modality === "ONLINE" ? "Virtual" : "Presencial"}
+            </Text>
+            <Text style={styles.date}>{formatDateTimeISO(lesson.timestamp)}</Text>
+          </View>
         </View>
-      </View>
-    </View>
+      </Pressable>
+
+      {/* Modal de detalle */}
+      <ClassDetailsModal
+        lesson={lesson}
+        open={open}
+        onClose={() => setOpen(false)}
+        onCancelled={onCancelled}
+      />
+    </>
   );
 }
 
-const cardStyles = StyleSheet.create({
+const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     gap: 12,
@@ -53,10 +63,6 @@ const cardStyles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: "700", color: "#111827" },
   subtitle: { marginTop: 2, color: "#6b7280" },
   row: { flexDirection: "row", gap: 8, alignItems: "center", marginTop: 8 },
-  date: { color: "#374151", fontSize: 12 },
-});
-
-const chipStyles = StyleSheet.create({
   chip: {
     fontSize: 12,
     backgroundColor: "#eef2ff",
@@ -66,4 +72,5 @@ const chipStyles = StyleSheet.create({
     borderRadius: 999,
     overflow: "hidden",
   },
+  date: { color: "#374151", fontSize: 12 },
 });

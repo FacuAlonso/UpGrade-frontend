@@ -11,8 +11,8 @@ export default function ForgotPasswordScreen() {
   return (
     <KeyboardAwareScrollView
       contentContainerStyle={styles.container}
-      extraScrollHeight={60}         // mueve un poco hacia arriba cuando aparece el teclado
-      enableOnAndroid={true}         // asegura buen comportamiento en Android
+      extraScrollHeight={60}        
+      enableOnAndroid={true}       
       keyboardShouldPersistTaps="handled"
     >
       <BackButton />

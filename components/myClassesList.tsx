@@ -7,11 +7,12 @@ import {
   Text,
   View,
 } from "react-native";
-import type { User } from "../hooks/data";
-import { useFetchLessons } from "../hooks/data";
-import { ClassCard } from "./classCard";
+import { useFetchLessons } from "@/hooks/data";
+import { useAuth } from "@/hooks/useAuth";
+import ClassCard from "./classCard";
 
-export function MyClassesList({ userId }: { userId: User["id"] }) {
+export function MyClassesList() {
+  const { user } = useAuth();
   const { data: lessons, isLoading, isError, refetch, isRefetching } = useFetchLessons();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -21,16 +22,18 @@ export function MyClassesList({ userId }: { userId: User["id"] }) {
     setRefreshing(false);
   }, [refetch]);
 
-  const sessions = useMemo(
-    () => lessons?.filter((l) => l.studentId === Number(userId)) ?? [],
-    [lessons, userId]
-  );
+  const sessions = useMemo(() => {
+    if (!lessons || !user) return [];
+    return lessons.filter(
+      (l) => l.studentId === user.id || l.tutorId === user.id
+    );
+  }, [lessons, user]);
 
   if (isLoading && !isRefetching) {
     return (
-      <View style={listStyles.emptyWrap}>
+      <View style={styles.emptyWrap}>
         <ActivityIndicator size="large" color="#2563eb" />
-        <Text style={listStyles.emptyText}>Cargando tus clases...</Text>
+        <Text style={styles.emptyText}>Cargando tus clases...</Text>
       </View>
     );
   }
@@ -38,13 +41,11 @@ export function MyClassesList({ userId }: { userId: User["id"] }) {
   if (isError) {
     return (
       <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        contentContainerStyle={listStyles.emptyWrap}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={styles.emptyWrap}
       >
-        <Text style={listStyles.emptyTitle}>Error</Text>
-        <Text style={listStyles.emptyText}>No pudimos cargar tus clases 😞</Text>
+        <Text style={styles.emptyTitle}>Error</Text>
+        <Text style={styles.emptyText}>No pudimos cargar tus clases 😞</Text>
       </ScrollView>
     );
   }
@@ -52,13 +53,11 @@ export function MyClassesList({ userId }: { userId: User["id"] }) {
   if (!sessions.length) {
     return (
       <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        contentContainerStyle={listStyles.emptyWrap}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={styles.emptyWrap}
       >
-        <Text style={listStyles.emptyTitle}>¡No tenés clases!</Text>
-        <Text style={listStyles.emptyText}>
+        <Text style={styles.emptyTitle}>¡No tenés clases!</Text>
+        <Text style={styles.emptyText}>
           Deslizá hacia abajo para actualizar o reservá una clase ✨
         </Text>
       </ScrollView>
@@ -67,10 +66,8 @@ export function MyClassesList({ userId }: { userId: User["id"] }) {
 
   return (
     <ScrollView
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-      contentContainerStyle={listStyles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      contentContainerStyle={styles.container}
     >
       {sessions.map((item) => (
         <View key={item.id} style={{ marginBottom: 12 }}>
@@ -81,7 +78,7 @@ export function MyClassesList({ userId }: { userId: User["id"] }) {
   );
 }
 
-const listStyles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     paddingVertical: 8,
     backgroundColor: "#092a54ff",

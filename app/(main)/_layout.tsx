@@ -1,15 +1,22 @@
-import { Tabs } from "expo-router";
+import { Tabs, Redirect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function MainTabsLayout() {
+  const { isLoggedIn } = useAuth();
+
+  if (!isLoggedIn) {
+    return <Redirect href="/login" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#22C55E", 
-        tabBarInactiveTintColor: "#9CA3AF", 
+        tabBarActiveTintColor: "#22C55E",
+        tabBarInactiveTintColor: "#9CA3AF",
         tabBarLabelStyle: { fontWeight: "600" },
-        animation: "shift"
+        animation: "shift",
       }}
     >
       <Tabs.Screen

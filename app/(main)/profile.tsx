@@ -5,33 +5,36 @@ import EditFieldModal from "../../components/editFieldModal";
 import ChangePasswordModal from "../../components/changePasswordModal";
 import colors from "../../theme/colors";
 import spacing from "../../theme/spacing";
+import { useAuth } from "@/hooks/useAuth";
+import PrimaryButton from "../../components/primaryButton";
 
 export default function ProfileScreen() {
-  const [name, setName] = useState("Nombre Apellido");
-  const [email, setEmail] = useState("usuario@correo.com");
-  const [phone, setPhone] = useState("+54 11 1234-5678");
-
+  const { user, logout } = useAuth();
+  const [phone, setPhone] = useState(user?.contactData ?? "");
   const [isTutor, setIsTutor] = useState(false);
-
   const [editNameOpen, setEditNameOpen] = useState(false);
   const [editEmailOpen, setEditEmailOpen] = useState(false);
   const [editPhoneOpen, setEditPhoneOpen] = useState(false);
   const [pwdOpen, setPwdOpen] = useState(false);
 
+  const name = `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim();
+
+  const email = user?.email ?? "";
+
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Perfil" }} />
 
-      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.avatar}><Text style={styles.avatarText}>{name[0]}</Text></View>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{name[0] ?? "U"}</Text>
+        </View>
         <View>
-          <Text style={styles.title}>{name}</Text>
+          <Text style={styles.title}>{name || "Usuario"}</Text>
           <Text style={styles.subtitle}>{email}</Text>
         </View>
       </View>
 
-      {/* Datos personales */}
       <Text style={styles.sectionTitle}>Datos personales</Text>
       <View style={styles.card}>
         <Row label="Nombre" value={name} onPress={() => setEditNameOpen(true)} />
@@ -39,7 +42,6 @@ export default function ProfileScreen() {
         <Row label="Teléfono" value={phone} onPress={() => setEditPhoneOpen(true)} />
       </View>
 
-      {/* Seguridad */}
       <Text style={styles.sectionTitle}>Seguridad</Text>
       <View style={styles.card}>
         <Pressable style={styles.row} onPress={() => setPwdOpen(true)}>
@@ -48,7 +50,6 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
-      {/* Modo tutor */}
       <Text style={styles.sectionTitle}>Modo tutor</Text>
       <View style={styles.card}>
         <View style={styles.row}>
@@ -67,17 +68,15 @@ export default function ProfileScreen() {
         )}
       </View>
 
-      {/* (Opcional) Acciones extra */}
-      {/* <PrimaryButton label="Cerrar sesión" onPress={() => console.log("logout")} /> */}
+      <PrimaryButton label="Cerrar sesión" onPress={logout} />
 
-      {/* Modals */}
       <EditFieldModal
         visible={editNameOpen}
         label="Editar nombre"
         placeholder="Nombre y Apellido"
         initialValue={name}
         onClose={() => setEditNameOpen(false)}
-        onSave={setName}
+        onSave={() => {}}
       />
       <EditFieldModal
         visible={editEmailOpen}
@@ -86,7 +85,7 @@ export default function ProfileScreen() {
         initialValue={email}
         keyboardType="email-address"
         onClose={() => setEditEmailOpen(false)}
-        onSave={setEmail}
+        onSave={() => {}}
       />
       <EditFieldModal
         visible={editPhoneOpen}
@@ -106,7 +105,6 @@ export default function ProfileScreen() {
   );
 }
 
-/** Row simple reutilizable */
 function Row({ label, value, onPress }: { label: string; value: string; onPress: () => void }) {
   return (
     <Pressable style={styles.row} onPress={onPress}>
@@ -120,20 +118,17 @@ function Row({ label, value, onPress }: { label: string; value: string; onPress:
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: spacing.xl, backgroundColor: colors.background, justifyContent:'center' },
+  container: { flex: 1, padding: spacing.xl, backgroundColor: colors.background },
   header: { flexDirection: "row", alignItems: "center", gap: spacing.l, marginBottom: spacing.xl },
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },
   avatarText: { fontSize: 20, fontWeight: "700", color: colors.text },
   title: { fontSize: 22, fontWeight: "700", color: colors.text },
   subtitle: { color: colors.muted, marginTop: 2 },
-
   sectionTitle: { fontSize: 14, fontWeight: "700", color: colors.muted, marginBottom: spacing.s, marginTop: spacing.m },
   card: { backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: spacing.l, paddingVertical: spacing.s, marginBottom: spacing.l },
-
   row: { flexDirection: "row", alignItems: "center", paddingVertical: spacing.m, gap: spacing.m },
   rowLabel: { fontSize: 16, fontWeight: "600", color: colors.text },
   rowValue: { color: colors.muted, marginTop: 2 },
   rowAction: { color: colors.primary, fontWeight: "700" },
-
   helper: { color: colors.muted, marginTop: spacing.m, marginBottom: spacing.s },
 });

@@ -1,5 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { TEST_USER_ID } from "../config";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "./useAuth";
+
+// -------------- Tipos -----------
 
 export type ID = number;
 
@@ -11,8 +13,13 @@ export type User = {
   xpLevel: number;
   rating?: number | null;
   profilePhoto?: string | null;
+  contactData?: string | null;
+  classroomAddress?: string | null;
+  onlineClassroomLink?: string | null;
   tutorSubjects?: { subject: Subject }[];
+  classSlots?: ClassSlot[];
 };
+
 
 export type Subject = {
   id: number;
@@ -22,6 +29,8 @@ export type Subject = {
 
 export type Modality = "ONLINE" | "ONSITE";
 
+export type LessonStatus = "PENDING" | "DONE" | "CANCELLED";
+
 export type Lesson = {
   id: number;
   slotId: number;
@@ -30,11 +39,13 @@ export type Lesson = {
   subjectId: number;
   modality: Modality;
   timestamp: string;
-  status: "PENDING" | "DONE" | "CANCELLED";
+  status: LessonStatus;
   tutor?: User;
   student?: User;
   subject?: Subject;
 };
+
+export type SlotStatus = "AVAILABLE" | "RESERVED" | "CANCELLED";
 
 export type ClassSlot = {
   id: number;
@@ -42,144 +53,58 @@ export type ClassSlot = {
   date: string;
   startTime: string;
   endTime: string;
-  status: "AVAILABLE" | "RESERVED" | "CANCELLED";
+  status: SlotStatus;
   deleted: boolean;
   tutor: User;
+  reservedBy?: User | null;
 };
 
 export type TutorAvailability = {
   id: number;
   tutorId: number;
-  weekday: number;
-  startTime: string;
-  endTime: string;
-  startDate: string;
-  endDate: string;
+  weekdays: number[]; 
+  timeBlocks: { start: string; end: string }[]; 
   active: boolean;
   tutor: User;
 };
 
-// -------------------- Config --------------------
-
-export const getCurrentUserId = () => TEST_USER_ID;
-
 export async function fetchJSON<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  try {
-    const res = await fetch(`${process.env.EXPO_PUBLIC_DB_API_URL}${endpoint}`, {
-      headers: { "Content-Type": "application/json" },
-      ...options,
-    });
-
-    const text = await res.text();
-    let data: any;
-    try {
-      data = text ? JSON.parse(text) : {};
-    } catch {
-      data = { raw: text };
-    }
-
-    if (!res.ok) {
-      const msg = typeof data === "object" && data.error ? data.error : res.statusText;
-      throw new Error(`HTTP ${res.status}: ${msg}`);
-    }
-
-    return data as T;
-  } catch (error) {
-    console.error("❌ fetchJSON error:", error);
-    throw error;
-  }
-}
-
-
-// -------------------- Consultas --------------------
-
-export function useFetchUsers() {
-  return useQuery({
-    queryKey: ["users"],
-    queryFn: () => fetchJSON<User[]>("/users"),
+  const baseUrl = process.env.EXPO_PUBLIC_DB_API_URL;
+  const res = await fetch(`${baseUrl}${endpoint}`, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
   });
+
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(error || res.statusText);
+  }
+
+  return res.json() as Promise<T>;
 }
+
+// ---------------------- Consultas ----------------------
 
 export function useFetchSubjects() {
+  const { fetchWithAuth } = useAuth();
   return useQuery({
     queryKey: ["subjects"],
-    queryFn: () => fetchJSON<Subject[]>("/subjects"),
+    queryFn: () => fetchWithAuth<Subject[]>("/subjects"),
   });
 }
 
 export function useFetchLessons() {
+  const { fetchWithAuth } = useAuth();
   return useQuery({
     queryKey: ["lessons"],
-    queryFn: () => fetchJSON<Lesson[]>("/lessons"),
-  });
-}
-
-export function useFetchTutorAvailability() {
-  return useQuery({
-    queryKey: ["availability"],
-    queryFn: () => fetchJSON<TutorAvailability[]>("/availability"),
-  });
-}
-
-export function useFetchSlots() {
-  return useQuery({
-    queryKey: ["slots"],
-    queryFn: () => fetchJSON<ClassSlot[]>("/slots"),
-  });
-}
-
-// -------------------- Escrituras --------------------
-
-export function useCreateUser() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: { firstName: string; lastName: string; email: string }) =>
-      fetchJSON<User>("/users/create", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
-  });
-}
-
-export function useUpdateUser() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Partial<User> & { id: number }) =>
-      fetchJSON<User>("/users/update", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
-  });
-}
-
-export function useDeleteUser() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) =>
-      fetchJSON<{ message: string }>("/users/delete", {
-        method: "POST",
-        body: JSON.stringify({ id }),
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
-  });
-}
-
-export function useCreateSubject() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: { name: string; iconUrl?: string }) =>
-      fetchJSON<Subject>("/subjects/create", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["subjects"] }),
+    queryFn: () => fetchWithAuth<Lesson[]>("/lessons"),
   });
 }
 
 export function useCreateLesson() {
   const qc = useQueryClient();
+  const { fetchWithAuth } = useAuth();
+
   return useMutation({
     mutationFn: (data: {
       slotId: number;
@@ -189,7 +114,7 @@ export function useCreateLesson() {
       modality: Modality;
       timestamp: string;
     }) =>
-      fetchJSON<Lesson>("/lessons", {
+      fetchWithAuth<Lesson>("/lessons", {
         method: "POST",
         body: JSON.stringify(data),
       }),
@@ -200,47 +125,28 @@ export function useCreateLesson() {
   });
 }
 
-export function useCreateAvailability() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: {
-      tutorId: number;
-      weekday: number;
-      startTime: string;
-      endTime: string;
-      startDate: string;
-      endDate: string;
-    }) =>
-      fetchJSON("/availability/create", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["availability"] }),
+export function useFetchTutors() {
+  const { fetchWithAuth } = useAuth();
+  return useQuery({
+    queryKey: ["tutors"],
+    queryFn: () => fetchWithAuth<User[]>("/users/tutors"),
   });
 }
 
-// -------------------- Auxiliares --------------------
+export function useCancelLesson() {
+  const qc = useQueryClient();
+  const { fetchWithAuth } = useAuth();
 
-export function levelStatsFromXp(xp: number) {
-  const level = Math.floor(Math.sqrt(xp / 100)) + 1;
-  const currStart = (level - 1) * (level - 1) * 100;
-  const nextStart = level * level * 100;
-  const currentInLevel = Math.max(0, xp - currStart);
-  const toNext = Math.max(1, nextStart - currStart);
-  const progress = Math.min(1, currentInLevel / toNext);
-  return { level, currStart, nextStart, currentInLevel, toNext, progress };
-}
-
-export function formatDateTimeISO(iso: string, locale: string = "es-AR") {
-  const dt = new Date(iso);
-  const date = new Intl.DateTimeFormat(locale, {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-  }).format(dt);
-  const time = new Intl.DateTimeFormat(locale, {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(dt);
-  return `${date} · ${time}`;
+  return useMutation({
+    mutationFn: async (data: { lessonId: number }) => {
+      return fetchWithAuth<{ message: string }>("/lessons/cancel", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lessons"] });
+      qc.invalidateQueries({ queryKey: ["slots"] });
+    },
+  });
 }

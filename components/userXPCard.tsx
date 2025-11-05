@@ -1,21 +1,12 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import type { User } from "../hooks/data";
-import { levelStatsFromXp, useFetchUsers } from "../hooks/data";
+import { useAuth } from "@/hooks/useAuth";
+import { levelStatsFromXp } from "@/utils/xpUtils";
 
-type Props = {
-  studentId: User["id"];
-};
+export default function UserXPCard() {
+  const { user, loading } = useAuth();
 
-export default function UserXPCard({ studentId }: Props) {
-  const { data: users, isLoading, isError } = useFetchUsers();
-
-  const student = useMemo(
-    () => users?.find((u) => u.id === Number(studentId)),
-    [users, studentId]
-  );
-
-  if (isLoading)
+  if (loading)
     return (
       <View style={styles.loadingWrap}>
         <ActivityIndicator color="#22C55E" />
@@ -23,14 +14,14 @@ export default function UserXPCard({ studentId }: Props) {
       </View>
     );
 
-  if (isError || !student)
+  if (!user)
     return (
       <View style={styles.loadingWrap}>
         <Text style={styles.loadingText}>No se encontró el usuario</Text>
       </View>
     );
 
-  const xp = student.xpLevel ?? 0;
+  const xp = user.xpLevel ?? 0;
   const { level, currentInLevel, toNext, progress } = levelStatsFromXp(xp);
   const percent = Math.round(progress * 100);
 
@@ -38,8 +29,8 @@ export default function UserXPCard({ studentId }: Props) {
     <View style={styles.card}>
       <Image
         source={
-          student.profilePhoto
-            ? { uri: student.profilePhoto }
+          user.profilePhoto
+            ? { uri: user.profilePhoto }
             : require("../assets/images/userProfiles/defaultNoImage.png")
         }
         style={styles.avatar}
@@ -48,7 +39,7 @@ export default function UserXPCard({ studentId }: Props) {
       <View style={{ flex: 1, marginLeft: 12 }}>
         <View style={styles.nameRow}>
           <Text style={styles.nameText}>
-            {student.firstName} {student.lastName}
+            {user.firstName} {user.lastName}
           </Text>
           <Text style={styles.levelText}>Nivel {level}</Text>
         </View>
@@ -80,62 +71,16 @@ export default function UserXPCard({ studentId }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#042E52",
-    borderRadius: 12,
-    padding: 12,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 2,
-    borderColor: "#22C55E",
-  },
-  nameRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  nameText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  levelText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  xpText: {
-    color: "#CFE6FF",
-    fontSize: 12,
-    marginVertical: 4,
-  },
-  bottomRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-    gap: 8,
-  },
-  progressBg: {
-    flexDirection: "row",
-    height: 6,
-    borderRadius: 3,
-    overflow: "hidden",
-    backgroundColor: "#444",
-  },
-  progressFill: {
-    backgroundColor: "#22C55E",
-  },
-  remainingText: {
-    marginTop: 4,
-    color: "#9CA3AF",
-    fontSize: 12,
-    fontStyle: "italic",
-  },
+  card: { flexDirection: "row", alignItems: "center", backgroundColor: "#042E52", borderRadius: 12, padding: 12 },
+  avatar: { width: 56, height: 56, borderRadius: 28, borderWidth: 2, borderColor: "#22C55E" },
+  nameRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  nameText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  levelText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  xpText: { color: "#CFE6FF", fontSize: 12, marginVertical: 4 },
+  bottomRow: { flexDirection: "row", alignItems: "center", marginTop: 4, gap: 8 },
+  progressBg: { flexDirection: "row", height: 6, borderRadius: 3, overflow: "hidden", backgroundColor: "#444" },
+  progressFill: { backgroundColor: "#22C55E" },
+  remainingText: { marginTop: 4, color: "#9CA3AF", fontSize: 12, fontStyle: "italic" },
   reviewButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -144,26 +89,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     marginLeft: 8,
-    display: "none"   //DESHABILITADO POR AHORA
+    display: "none",
   },
-  joystickIcon: {
-    width: 16,
-    height: 16,
-    marginRight: 6,
-    resizeMode: "contain",
-  },
-  reviewButtonText: {
-    color: "#fff",
-    fontWeight: "700",
-  },
-  loadingWrap: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-  },
-  loadingText: {
-    color: "#CFE6FF",
-    fontSize: 14,
-    marginTop: 6,
-  },
+  joystickIcon: { width: 16, height: 16, marginRight: 6, resizeMode: "contain" },
+  reviewButtonText: { color: "#fff", fontWeight: "700" },
+  loadingWrap: { alignItems: "center", justifyContent: "center", padding: 16 },
+  loadingText: { color: "#CFE6FF", fontSize: 14, marginTop: 6 },
 });
