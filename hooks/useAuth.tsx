@@ -9,15 +9,29 @@ import {
 } from "../redux/reducers/userSlice";
 import { useAppSelector } from "../hooks/useRedux";
 
+export type AuthUser = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  xpLevel?: number;
+  rating?: number | null;
+  profilePhoto?: string | null;
+  contactData?: string | null;
+  classroomAddress?: string | null;
+  onlineClassroomLink?: string | null;
+};
+
 type AuthContextType = {
-  user: any | null;
+  user: AuthUser | null;
   token: string | null;
   isLoggedIn: boolean;
   loading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  fetchWithAuth: <T>(endpoint: string, options?: RequestInit) => Promise<T>;
+  fetchWithAuth: <T = any>(endpoint: string, options?: RequestInit) => Promise<T>;
+  refreshMe: () => Promise<void>; 
 };
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -84,18 +98,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return data as T;
   }
 
+  const refreshMe = async () => {
+    if (!token) return;
+    const me = await fetchWithAuth<AuthUser>("/auth/me");
+    await AsyncStorage.setItem("auth", JSON.stringify({ user: me, token }));
+    dispatch(loginSuccess({ user: me, token }));
+  };
 
   return (
     <AuthContext.Provider
       value={{
-        user,
+        user: (user as AuthUser) ?? null,
         token,
         isLoggedIn: !!token,
-        loading,
-        error,
+        loading: !!loading,
+        error: error ?? null,
         login,
         logout,
         fetchWithAuth,
+        refreshMe,
       }}
     >
       {children}
