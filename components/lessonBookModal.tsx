@@ -22,11 +22,17 @@ const dfDate = new Intl.DateTimeFormat("es-AR", {
 
 function groupSlotsByDay(slots: ClassSlot[]) {
   const map = new Map<string, ClassSlot[]>();
+
   slots.forEach((s) => {
-    const d = new Date(s.date);
-    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(
-      d.getUTCDate()
-    ).padStart(2, "0")}`;
+    const utcDate = new Date(s.date);
+    const localOffset = utcDate.getTime() - utcDate.getTimezoneOffset() * 60000;
+    const localDate = new Date(localOffset);
+
+    const key = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${String(localDate.getDate()).padStart(2, "0")}`;
+
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(s);
   });
@@ -34,7 +40,7 @@ function groupSlotsByDay(slots: ClassSlot[]) {
   return Array.from(map.entries())
     .map(([iso, items]) => ({
       iso,
-      label: dfDate.format(new Date(iso)),
+      label: dfDate.format(new Date(iso + "T00:00:00")), 
       items: items.sort((a, b) => a.startTime.localeCompare(b.startTime)),
     }))
     .sort((a, b) => a.iso.localeCompare(b.iso));

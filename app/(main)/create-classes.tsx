@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, View, Pressable, Alert, ActivityIndicator } from "react-native";
+import { ScrollView, StyleSheet, Text, View, Pressable, ActivityIndicator } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAvailabilities } from "../../hooks/useTutorAvailability";
-import { useAuth } from "../../hooks/useAuth";
 import AvailabilityCard from "../../components/availabilityCard";
 import CreateSlotsModal from "../../components/createSlotsModal";
 import colors from "../../theme/colors";
@@ -15,38 +14,6 @@ export default function CreateClassesScreen() {
   const [selectedAvailability, setSelectedAvailability] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
-
-
-  const { token } = useAuth();
-
-  const handleDelete = async (availability: any) => {
-    Alert.alert("Eliminar disponibilidad", "¿Seguro querés eliminar esta disponibilidad?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Eliminar",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await fetch(
-              `${process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000"}/availability/${availability.id}`,
-              {
-                method: "DELETE",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
-            await refetchAvail();
-          } catch (e) {
-            Alert.alert("Error", "No se pudo eliminar la disponibilidad.");
-            console.log(e);
-          }
-        },
-      },
-    ]);
-  };
-
 
   if (!availabilities) {
     return (
@@ -61,19 +28,18 @@ export default function CreateClassesScreen() {
       <Text style={styles.title}>Mis Disponibilidades</Text>
 
       {availabilities.length === 0 ? (
-        <Text style={styles.muted}>Aún no creaste disponibilidades.</Text>
-      ) : (
-        availabilities.map((av) => (
-          <AvailabilityCard
-            key={av.id}
-            availability={av}
-            onCreateSlots={() => {
-              setSelectedAvailability(av);
-              setModalOpen(true);
-            }}
-            onDelete={() => handleDelete(av)}
-          />
-        ))
+          <Text style={styles.muted}>Aún no creaste disponibilidades.</Text>
+        ) : (
+          availabilities.map((av) => (
+            <AvailabilityCard
+              key={av.id}
+              availability={av}
+              onCreateSlots={() => {
+                setSelectedAvailability(av);
+                setModalOpen(true);
+              }}
+            />
+          ))
       )}
 
       <Pressable
