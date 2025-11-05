@@ -1,30 +1,16 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, useContext, useEffect } from "react";
 import { useDispatch } from "react-redux";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   loginStart,
   loginSuccess,
   loginFailure,
   logout as logoutAction,
 } from "../redux/reducers/userSlice";
-
-
-
-type AuthUser = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  xpLevel?: number;
-  rating?: number | null;
-  profilePhoto?: string | null;
-  contactData?: string | null;
-  classroomAddress?: string | null;
-  onlineClassroomLink?: string | null;
-};
+import { useAppSelector } from "../hooks/useRedux";
 
 type AuthContextType = {
-  user: AuthUser | null;
+  user: any | null;
   token: string | null;
   isLoggedIn: boolean;
   loading: boolean;
@@ -37,11 +23,8 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const dispatch = useDispatch();
+  const { user, token, loading, error } = useAppSelector((state) => state.user);
 
   useEffect(() => {
     (async () => {
@@ -49,20 +32,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const saved = await AsyncStorage.getItem("auth");
         if (saved) {
           const parsed = JSON.parse(saved);
-          setUser(parsed.user);
-          setToken(parsed.token);
           dispatch(loginSuccess({ user: parsed.user, token: parsed.token }));
         }
       } catch {
-      } finally {
-        setLoading(false);
+        console.warn("No se pudo restaurar la sesión almacenada.");
       }
     })();
   }, [dispatch]);
 
   const login = async (email: string, password: string) => {
-    setLoading(true);
-    setError(null);
     dispatch(loginStart());
     try {
       const res = await fetch(`${process.env.EXPO_PUBLIC_DB_API_URL}/auth/login`, {
@@ -70,27 +48,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al iniciar sesión");
-      setUser(data.user);
-      setToken(data.token);
+
       await AsyncStorage.setItem("auth", JSON.stringify({ user: data.user, token: data.token }));
       dispatch(loginSuccess({ user: data.user, token: data.token }));
     } catch (err: any) {
-      setError(err.message);
       dispatch(loginFailure(err.message));
-    } finally {
-      setLoading(false);
     }
   };
 
   const logout = async () => {
-    try {
-      await AsyncStorage.removeItem("auth");
-      setUser(null);
-      setToken(null);
-      dispatch(logoutAction());
-    } catch {}
+    await AsyncStorage.removeItem("auth");
+    dispatch(logoutAction());
   };
 
   async function fetchWithAuth<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -101,10 +72,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       },
       ...options,
     });
+
     if (res.status === 401) {
       await logout();
       throw new Error("Token inválido o expirado. Se cerró la sesión.");
     }
+
     const text = await res.text();
     const data = text ? JSON.parse(text) : {};
     if (!res.ok) throw new Error(data.error || res.statusText);

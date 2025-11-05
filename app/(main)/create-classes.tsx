@@ -1,4 +1,4 @@
-// app/(tabs)/create-classes.tsx
+
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, TextInput, StyleSheet, Alert, Pressable, FlatList } from "react-native";
 import { Stack } from "expo-router";
@@ -28,7 +28,6 @@ export default function CreateClassesScreen() {
   const { user, fetchWithAuth } = useAuth();
   const qc = useQueryClient();
 
-  // ======= 1) Traer disponibilidades existentes del tutor =======
   const { data: availabilities = [], refetch: refetchAvail } = useQuery({
     queryKey: ["availability"],
     queryFn: async () => {
@@ -37,8 +36,7 @@ export default function CreateClassesScreen() {
     },
   });
 
-  // ======= 2) Crear disponibilidad =======
-  const [weekdays, setWeekdays] = useState<number[]>([1, 3]); // ejemplo: lunes y miércoles
+  const [weekdays, setWeekdays] = useState<number[]>([1, 3]); 
   const [blocks, setBlocks] = useState<TimeBlock[]>([
     { start: "10:00", end: "11:00" },
   ]);
@@ -74,12 +72,10 @@ export default function CreateClassesScreen() {
     }
   };
 
-  // ======= 3) Generar semana de slots a partir de una disponibilidad =======
   const [selectedAvailabilityId, setSelectedAvailabilityId] = useState<number | null>(null);
   const defaultMonday = useMemo(() => {
-    // próximo lunes por defecto
     const d = new Date();
-    const day = d.getDay(); // 0=Dom ... 1=Lun
+    const day = d.getDay(); 
     const delta = (8 - day) % 7 || 7; // próximo lunes
     d.setDate(d.getDate() + delta);
     const yyyy = d.getFullYear();
@@ -92,7 +88,6 @@ export default function CreateClassesScreen() {
   const [resultMsg, setResultMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    // autoseleccionar la primera disponibilidad si existe
     if (availabilities.length && selectedAvailabilityId == null) {
       setSelectedAvailabilityId(availabilities[0].id);
     }
@@ -126,7 +121,6 @@ export default function CreateClassesScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: "Crear clases" }} />
 
-      {/* ===== Sección A: Crear disponibilidad ===== */}
       <Text style={styles.section}>Disponibilidad</Text>
 
       <Text style={styles.label}>Días</Text>
@@ -182,7 +176,6 @@ export default function CreateClassesScreen() {
         disabled={creating}
       />
 
-      {/* ===== Sección B: Generar semana ===== */}
       <Text style={styles.section}>Generar semana</Text>
 
       <Text style={styles.label}>Disponibilidad</Text>

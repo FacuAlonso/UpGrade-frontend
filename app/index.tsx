@@ -1,4 +1,3 @@
-import React from "react";
 import { Image, ImageBackground, StyleSheet, View } from "react-native";
 import { Link } from "expo-router";
 import PrimaryButton from "../components/primaryButton";

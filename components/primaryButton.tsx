@@ -5,9 +5,9 @@ import spacing from "../theme/spacing";
 
 type Props = {
   label: string;
-  onPress: () => void;
-  disabled?: boolean;     // ⬅️ nueva
-  loading?: boolean;      // opcional, por si querés mostrar “Guardando...”
+ onPress?: () => void;
+  disabled?: boolean; 
+  loading?: boolean;      
   style?: ViewStyle;
 };
 

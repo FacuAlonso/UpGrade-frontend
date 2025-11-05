@@ -14,14 +14,12 @@ import { setMode } from "../../redux/reducers/appModeSlice";
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
 
-  // 👉 estados locales que sí quedan
   const [phone, setPhone] = useState(user?.contactData ?? "");
   const [editNameOpen, setEditNameOpen] = useState(false);
   const [editEmailOpen, setEditEmailOpen] = useState(false);
   const [editPhoneOpen, setEditPhoneOpen] = useState(false);
   const [pwdOpen, setPwdOpen] = useState(false);
 
-  // 👉 estado global de modo (Redux)
   const mode = useSelector((s: RootState) => s.appMode.mode);
   const dispatch = useDispatch();
 

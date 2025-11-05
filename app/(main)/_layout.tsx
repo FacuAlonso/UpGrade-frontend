@@ -21,8 +21,6 @@ export default function MainTabsLayout() {
         animation: "shift",
       }}
     >
-
-      {/* Solo alumno */}
       <Tabs.Screen
         name="home"
         options={{
@@ -44,7 +42,6 @@ export default function MainTabsLayout() {
         }}
       />
 
-      {/* Solo tutor */}
       <Tabs.Screen
         name="tutor-lessons"
         options={{

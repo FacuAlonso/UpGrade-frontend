@@ -2,9 +2,10 @@ import { configureStore } from "@reduxjs/toolkit";
 import userReducer from "./reducers/userSlice";
 import appModeReducer from "./reducers/appModeSlice";
 
-const store = configureStore({
+export const store = configureStore({
   reducer: {
-    user: userReducer, appMode: appModeReducer 
+    user: userReducer,
+    appMode: appModeReducer,
   },
 });
 
