@@ -42,17 +42,17 @@ export function ClassCard({ lesson, role, onCancelled }: Props) {
             </Text>
             <Text style={styles.date}>{formatDateTimeISO(lesson.timestamp)}</Text>
           </View>
+        </View>
 
-          <View style={styles.roleChipContainer}>
-            <Text
-              style={[
-                styles.roleChip,
-                role === "TUTOR" ? styles.roleTutor : styles.roleStudent,
-              ]}
-            >
-              {role === "TUTOR" ? "Tutor" : "Estudiante"}
-            </Text>
-          </View>
+        <View
+          style={[
+            styles.roleChip,
+            role === "TUTOR" ? styles.roleTutor : styles.roleStudent,
+          ]}
+        >
+          <Text style={styles.roleText}>
+            {role === "TUTOR" ? "Tutor" : "Estudiante"}
+          </Text>
         </View>
       </Pressable>
 
@@ -77,6 +77,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 10,
     elevation: 2,
+    position: "relative",
   },
   icon: { width: 52, height: 52, borderRadius: 10 },
   title: { fontSize: 16, fontWeight: "700", color: "#111827" },
@@ -92,18 +93,19 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   date: { color: "#374151", fontSize: 12 },
-  roleChipContainer: {
-    marginTop: 6,
-    alignSelf: "flex-start",
-  },
   roleChip: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "white",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    position: "absolute",
+    top: 8,
+    right: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     borderRadius: 8,
   },
   roleTutor: { backgroundColor: "#2563EB" },
   roleStudent: { backgroundColor: "#16A34A" },
+  roleText: {
+    color: "white",
+    fontSize: 11,
+    fontWeight: "700",
+  },
 });
