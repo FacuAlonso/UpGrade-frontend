@@ -1,9 +1,9 @@
 import React from "react";
 import {FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View} from "react-native";
-import colors from "@/theme/colors";
-import spacing from "@/theme/spacing";
-import type { User, ClassSlot } from "@/hooks/data";
-import { levelStatsFromXp } from "@/utils/xpUtils";
+import colors from "../theme/colors";
+import spacing from "../theme/spacing";
+import type { User, ClassSlot } from "../hooks/data";
+import { levelStatsFromXp } from "../utils/xpUtils";
 
 
 type Props = {
@@ -68,7 +68,7 @@ export default function SearchTeacherList({
 
             <View style={{ alignItems: "flex-end" }}>
               <Text style={[styles.rating, { color: colors.text }]}>
-                Nivel {levelStatsFromXp(item.tutor.xpLevel ?? 0).level}
+                Nivel XP: {levelStatsFromXp(item.tutor.xpLevel ?? 0).level}
               </Text>
             </View>
           </View>

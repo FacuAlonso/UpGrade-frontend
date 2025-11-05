@@ -24,7 +24,6 @@ export default function MainTabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          href: mode === "student" ? undefined : null,
           title: "Inicio",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
@@ -38,17 +37,6 @@ export default function MainTabsLayout() {
           title: "Buscar",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="search-outline" size={size} color={color} />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="tutor-lessons"
-        options={{
-          href: mode === "tutor" ? undefined : null,
-          title: "Mis clases",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="book-outline" size={size} color={color} />
           ),
         }}
       />

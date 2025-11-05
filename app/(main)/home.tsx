@@ -1,11 +1,19 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View, ActivityIndicator } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { MyClassesList } from "../../components/myClassesList";
 import UserXPCard from "../../components/userXPCard";
+import ConfirmationAnimation from "../../components/animations/confirmationAnimation";
 import { useAuth } from "../../hooks/useAuth";
 
 export default function HomeScreen() {
   const { user, isLoggedIn, loading } = useAuth();
+  const { confirmed } = useLocalSearchParams();
+  const [showAnimation, setShowAnimation] = useState(false);
+
+  useEffect(() => {
+    if (confirmed === "true") setShowAnimation(true);
+  }, [confirmed]);
 
   if (loading)
     return (
@@ -22,12 +30,19 @@ export default function HomeScreen() {
     );
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Home</Text>
-      <UserXPCard />
-      <Text style={styles.subtitle}>Mis clases</Text>
-      <MyClassesList />
-    </ScrollView>
+    <>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Home</Text>
+        <UserXPCard />
+        <Text style={styles.subtitle}>Mis clases</Text>
+        <MyClassesList />
+      </ScrollView>
+
+      <ConfirmationAnimation
+        visible={showAnimation}
+        onFinish={() => setShowAnimation(false)}
+      />
+    </>
   );
 }
 
@@ -35,5 +50,11 @@ const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: 24, gap: 16 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   title: { fontSize: 24, fontWeight: "700", color: "black", marginTop: 20 },
-  subtitle: { fontSize: 18, fontWeight: "600", marginTop: 16, marginBottom: 8, color: "black" },
+  subtitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+    color: "black",
+  },
 });

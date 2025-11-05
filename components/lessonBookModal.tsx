@@ -4,7 +4,6 @@ import { Modal, Pressable, StyleSheet, Text, View, ScrollView } from "react-nati
 import colors from "../theme/colors";
 import spacing from "../theme/spacing";
 import type { ClassSlot, Subject, User } from "../hooks/data";
-import ConfirmationAnimation from "../components/animations/confirmationAnimation";
 
 type Props = {
   teacher: User | null;
@@ -25,7 +24,9 @@ function groupSlotsByDay(slots: ClassSlot[]) {
   const map = new Map<string, ClassSlot[]>();
   slots.forEach((s) => {
     const d = new Date(s.date);
-    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(
+      d.getUTCDate()
+    ).padStart(2, "0")}`;
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(s);
   });
@@ -33,28 +34,20 @@ function groupSlotsByDay(slots: ClassSlot[]) {
   return Array.from(map.entries())
     .map(([iso, items]) => ({
       iso,
-      label: new Intl.DateTimeFormat("es-AR", {
-        weekday: "short",
-        day: "2-digit",
-        month: "2-digit",
-        timeZone: "UTC",
-      }).format(new Date(iso)),
+      label: dfDate.format(new Date(iso)),
       items: items.sort((a, b) => a.startTime.localeCompare(b.startTime)),
     }))
     .sort((a, b) => a.iso.localeCompare(b.iso));
 }
-
 
 export default function LessonBookModal({ teacher, slots, open, onClose, onConfirm }: Props) {
   const [step, setStep] = useState<"slots" | "subject" | "confirm">("slots");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [subjectId, setSubjectId] = useState<number | null>(null);
   const [modality, setModality] = useState<"ONLINE" | "ONSITE">("ONLINE");
-  const [confirmed, setConfirmed] = useState(false);
   const router = useRouter();
 
   const availableSlots = useMemo(() => slots.filter((s) => s.status === "AVAILABLE"), [slots]);
-
   const days = useMemo(() => groupSlotsByDay(availableSlots), [availableSlots]);
 
   const subjects: Subject[] = useMemo(() => {
@@ -87,7 +80,13 @@ export default function LessonBookModal({ teacher, slots, open, onClose, onConfi
               <ScrollView contentContainerStyle={{ gap: spacing.m }}>
                 {days.map((d) => (
                   <View key={d.iso} style={{ gap: spacing.s }}>
-                    <Text style={{ color: colors.muted, textTransform: "uppercase", fontWeight: "700" }}>
+                    <Text
+                      style={{
+                        color: colors.muted,
+                        textTransform: "uppercase",
+                        fontWeight: "700",
+                      }}
+                    >
                       {d.label}
                     </Text>
                     <View style={styles.grid}>
@@ -211,16 +210,16 @@ export default function LessonBookModal({ teacher, slots, open, onClose, onConfi
                   {modality === "ONLINE" ? "Virtual" : "Presencial"}
                 </Text>
               </Text>
-              <Text style={{ color: colors.text, marginTop: spacing.s, fontWeight: "700" }}>Horarios:</Text>
+
+              <Text style={[styles.section, { marginTop: spacing.m }]}>Horarios seleccionados</Text>
               <View style={{ gap: 6, marginTop: 6 }}>
                 {Array.from(selected).map((id) => {
-                  const s = availableSlots.find((x) => x.id === id)!;
-                  const d = new Date(s.date);
-                  const day = dfDate.format(d);
-                  const label = `${day.charAt(0).toUpperCase() + day.slice(1)} · ${s.startTime}-${s.endTime}`;
+                  const s = slots.find((x) => x.id === id);
+                  if (!s) return null;
+                  const dayLabel = dfDate.format(new Date(s.date));
                   return (
                     <Text key={id} style={{ color: colors.text }}>
-                      • {label}
+                      • {dayLabel} · {s.startTime}–{s.endTime}
                     </Text>
                   );
                 })}
@@ -235,7 +234,8 @@ export default function LessonBookModal({ teacher, slots, open, onClose, onConfi
                     subjectId: subjectId!,
                     modality,
                   });
-                  setConfirmed(true);
+                  router.push("/(main)/home?confirmed=true");
+                  onClose();
                 }}
               >
                 <Text style={styles.callToActionsText}>CONFIRMAR RESERVA</Text>
@@ -244,17 +244,6 @@ export default function LessonBookModal({ teacher, slots, open, onClose, onConfi
           )}
         </Pressable>
       </Pressable>
-
-      <ConfirmationAnimation
-        visible={confirmed}
-        onFinish={() => {
-          setTimeout(() => {
-            setConfirmed(false);
-            onClose();
-            router.push("/(main)/home");
-          }, 1500);
-        }}
-      />
     </Modal>
   );
 }
@@ -270,9 +259,21 @@ const styles = StyleSheet.create({
     maxHeight: "85%",
   },
   title: { fontSize: 18, fontWeight: "700", color: colors.text, marginBottom: spacing.s },
-  section: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", color: colors.muted, marginTop: spacing.s },
+  section: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    color: colors.muted,
+    marginTop: spacing.s,
+  },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.s },
   pill: { paddingVertical: 10, paddingHorizontal: spacing.m, borderRadius: 12, borderWidth: 1 },
-  cta: { backgroundColor: colors.primary, paddingVertical: 12, alignItems: "center", borderRadius: 10, marginTop: spacing.m },
+  cta: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRadius: 10,
+    marginTop: spacing.m,
+  },
   callToActionsText: { color: "white", fontWeight: "700" },
 });

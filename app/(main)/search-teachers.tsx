@@ -91,7 +91,7 @@ export default function SearchTeachersScreen() {
 
   return (
     <View style={{ flex: 1, padding: spacing.xl, backgroundColor: colors.background, marginTop: 20 }}>
-      <Stack.Screen options={{ title: "Buscar tutores" }} />
+      <Stack.Screen />
 
       <FormTextInput
         placeholder="Buscar por nombre o materia"

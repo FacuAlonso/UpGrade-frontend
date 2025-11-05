@@ -1,7 +1,7 @@
 import React from "react";
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useAuth } from "@/hooks/useAuth";
-import { levelStatsFromXp } from "@/utils/xpUtils";
+import { useAuth } from "../hooks/useAuth";
+import { levelStatsFromXp } from "../utils/xpUtils";
 
 export default function UserXPCard() {
   const { user, loading } = useAuth();
