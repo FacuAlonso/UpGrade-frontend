@@ -5,7 +5,7 @@ import EditFieldModal from "../../components/editFieldModal";
 import ChangePasswordModal from "../../components/changePasswordModal";
 import colors from "../../theme/colors";
 import spacing from "../../theme/spacing";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "../../hooks/useAuth";
 import PrimaryButton from "../../components/primaryButton";
 
 export default function ProfileScreen() {

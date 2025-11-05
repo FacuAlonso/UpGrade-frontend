@@ -2,7 +2,7 @@ import React from "react";
 import { ScrollView, StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import { MyClassesList } from "../../components/myClassesList";
 import UserXPCard from "../../components/userXPCard";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function HomeScreen() {
   const { user, isLoggedIn, loading } = useAuth();

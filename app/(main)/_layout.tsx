@@ -1,6 +1,6 @@
 import { Tabs, Redirect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function MainTabsLayout() {
   const { isLoggedIn } = useAuth();

@@ -1,5 +1,5 @@
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
-import type { RootState } from "@/redux/store";
+import type { RootState } from "../redux/store";
 import { UnknownAction } from "redux";
 import { ThunkDispatch } from "redux-thunk";
 

@@ -1,19 +1,19 @@
 import { Stack } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, View, Text } from "react-native";
-import FormTextInput from "@/components/formTextInput";
-import colors from "@/theme/colors";
-import spacing from "@/theme/spacing";
+import FormTextInput from "../../components/formTextInput";
+import colors from "../../theme/colors";
+import spacing from "../../theme/spacing";
 import {
   useFetchTutors,
   type User,
   type ClassSlot,
   fetchJSON,
-} from "@/hooks/data";
-import SearchTeacherList from "@/components/searchTeacherList";
-import LessonBookModal from "@/components/lessonBookModal";
-import { useCreateLesson } from "@/hooks/data";
-import { useAuth } from "@/hooks/useAuth";
+} from "../../hooks/data";
+import SearchTeacherList from "../../components/searchTeacherList";
+import LessonBookModal from "../../components/lessonBookModal";
+import { useCreateLesson } from "../../hooks/data";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function SearchTeachersScreen() {
   const { user } = useAuth();
