@@ -60,7 +60,7 @@ export function ClassCard({ lesson, role, onCancelled }: Props) {
         lesson={lesson}
         open={open}
         onClose={() => setOpen(false)}
-        onCancelled={onCancelled}
+        onCancelled={onCancelled} // ✅ Propagamos callback
       />
     </>
   );

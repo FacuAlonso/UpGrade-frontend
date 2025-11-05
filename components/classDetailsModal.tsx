@@ -1,5 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Modal, View, Text, Pressable, StyleSheet, Linking, Animated, Easing, Alert } from "react-native";
+import {
+  Modal,
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  Linking,
+  Animated,
+  Easing,
+  Alert,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import colors from "../theme/colors";
 import spacing from "../theme/spacing";
@@ -16,10 +26,17 @@ type Props = {
   onRefresh?: () => void;
 };
 
-export default function ClassDetailsModal({ lesson, open, onClose, onCancelled, onRefresh }: Props) {
+export default function ClassDetailsModal({
+  lesson,
+  open,
+  onClose,
+  onCancelled,
+  onRefresh,
+}: Props) {
   const { fetchWithAuth } = useAuth();
   const [loading, setLoading] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(100)).current;
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(300)).current;
 
   useEffect(() => {
@@ -46,7 +63,7 @@ export default function ClassDetailsModal({ lesson, open, onClose, onCancelled, 
           useNativeDriver: true,
         }),
         Animated.timing(slideAnim, {
-          toValue: 50,
+          toValue: 300,
           duration: 200,
           useNativeDriver: true,
         }),
@@ -59,6 +76,7 @@ export default function ClassDetailsModal({ lesson, open, onClose, onCancelled, 
   const subject = lesson.subject?.name ?? "Materia";
   const tutor = `${lesson.tutor?.firstName ?? ""} ${lesson.tutor?.lastName ?? ""}`.trim();
   const when = formatDateTimeISO(lesson.timestamp);
+
   const date = new Date(lesson.timestamp);
   const now = new Date();
   const diffMs = date.getTime() - now.getTime();
@@ -86,6 +104,7 @@ export default function ClassDetailsModal({ lesson, open, onClose, onCancelled, 
               onClose();
             } catch (err) {
               console.error("Error al cancelar clase:", err);
+              Alert.alert("Error", "No se pudo cancelar la clase. Intentá nuevamente.");
             } finally {
               setLoading(false);
             }
@@ -103,7 +122,7 @@ export default function ClassDetailsModal({ lesson, open, onClose, onCancelled, 
   ].filter(Boolean) as string[];
 
   return (
-    <Modal transparent visible={open} onRequestClose={onClose}>
+    <Modal transparent visible={open} onRequestClose={onClose} animationType="none">
       <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
         <Pressable style={{ flex: 1 }} onPress={onClose} />
       </Animated.View>
@@ -135,10 +154,13 @@ export default function ClassDetailsModal({ lesson, open, onClose, onCancelled, 
             {contact.map((c, i) => {
               const isLink = c.includes("🌐");
               const icon =
-                c.includes("📧") ? "mail-outline" :
-                c.includes("📱") ? "call-outline" :
-                c.includes("📍") ? "location-outline" :
-                "link-outline";
+                c.includes("📧")
+                  ? "mail-outline"
+                  : c.includes("📱")
+                  ? "call-outline"
+                  : c.includes("📍")
+                  ? "location-outline"
+                  : "link-outline";
               const text = c.slice(2).trim();
 
               return (
@@ -199,7 +221,12 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: "700", color: colors.text },
   subtitle: { fontSize: 16, color: colors.text },
   text: { fontSize: 14, color: colors.muted },
-  sectionTitle: { fontSize: 14, fontWeight: "700", color: colors.muted, marginTop: spacing.s },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.muted,
+    marginTop: spacing.s,
+  },
   warning: { color: "#DC2626", fontWeight: "700", marginTop: spacing.s },
   contactRow: { flexDirection: "row", alignItems: "center", marginTop: 6 },
   link: { color: colors.text },

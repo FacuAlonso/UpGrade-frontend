@@ -1,5 +1,11 @@
 import React from "react";
-import { Text, StyleSheet, ActivityIndicator, RefreshControl, ScrollView } from "react-native";
+import {
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+} from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
 import { ClassCard } from "./classCard";
@@ -35,7 +41,8 @@ export function MyClassesList() {
   });
 
   const sortedLessons = validLessons.sort(
-    (a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    (a: any, b: any) =>
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   );
 
   if (sortedLessons.length === 0)
@@ -44,11 +51,20 @@ export function MyClassesList() {
   return (
     <ScrollView
       contentContainerStyle={{ gap: spacing.m }}
-      refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} />}
+      refreshControl={
+        <RefreshControl refreshing={isFetching} onRefresh={refetch} />
+      }
     >
       {sortedLessons.map((lesson: any) => {
         const role = lesson.tutorId === user.id ? "TUTOR" : "STUDENT";
-        return <ClassCard key={lesson.id} lesson={lesson} role={role} />;
+        return (
+          <ClassCard
+            key={lesson.id}
+            lesson={lesson}
+            role={role}
+            onCancelled={refetch} 
+          />
+        );
       })}
     </ScrollView>
   );
