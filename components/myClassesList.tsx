@@ -1,128 +1,59 @@
-import React, { useCallback, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { useFetchLessons, Lesson } from "../hooks/data";
+import React from "react";
+import { Text, StyleSheet, ActivityIndicator, RefreshControl, ScrollView } from "react-native";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
-import ClassCard from "./classCard";
-import ClassDetailsModal from "./classDetailsModal";
+import { ClassCard } from "./classCard";
+import colors from "../theme/colors";
+import spacing from "../theme/spacing";
 
 export function MyClassesList() {
-  const { user } = useAuth();
-  const { data: lessons, isLoading, isError, refetch, isRefetching } = useFetchLessons();
-  const [refreshing, setRefreshing] = useState(false);
-  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
+  const { user, fetchWithAuth } = useAuth();
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
-  }, [refetch]);
+  const {
+    data: lessons = [],
+    refetch,
+    isFetching,
+  } = useQuery({
+    queryKey: ["lessons"],
+    queryFn: async () => {
+      const res = await fetchWithAuth("/lessons");
+      return res ?? [];
+    },
+  });
 
-  const sessions = useMemo(() => {
-    if (!lessons || !user) return [];
-    return lessons.filter((l) => l.studentId === user.id || l.tutorId === user.id);
-  }, [lessons, user]);
+  if (!user)
+    return <Text style={styles.muted}>Iniciá sesión para ver tus clases.</Text>;
 
-  const handleOpenDetails = (lesson: Lesson) => {
-    setSelectedLesson(lesson);
-    setModalOpen(true);
-  };
+  if (isFetching)
+    return <ActivityIndicator size="large" color={colors.primary} />;
 
-  const handleCloseDetails = () => {
-    setModalOpen(false);
-    setSelectedLesson(null);
-  };
+  const now = new Date();
+  const validLessons = lessons.filter((l: any) => {
+    const start = new Date(l.timestamp);
+    const diffHours = (start.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return diffHours > -1; // excluir las que terminaron hace más de 1h
+  });
 
-  if (isLoading && !isRefetching) {
-    return (
-      <View style={styles.emptyWrap}>
-        <ActivityIndicator size="large" color="#2563eb" />
-        <Text style={styles.emptyText}>Cargando tus clases...</Text>
-      </View>
-    );
-  }
+  const sortedLessons = validLessons.sort(
+    (a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
 
-  if (isError) {
-    return (
-      <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={styles.emptyWrap}
-      >
-        <Text style={styles.emptyTitle}>Error</Text>
-        <Text style={styles.emptyText}>No pudimos cargar tus clases 😞</Text>
-      </ScrollView>
-    );
-  }
-
-  if (!sessions.length) {
-    return (
-      <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={styles.emptyWrap}
-      >
-        <Text style={styles.emptyTitle}>¡No tenés clases!</Text>
-        <Text style={styles.emptyText}>
-          Deslizá hacia abajo para actualizar o reservá una clase ✨
-        </Text>
-      </ScrollView>
-    );
-  }
+  if (sortedLessons.length === 0)
+    return <Text style={styles.muted}>No hay clases próximas.</Text>;
 
   return (
-    <>
-      <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={styles.container}
-      >
-        {sessions.map((item) => (
-          <View key={item.id} style={{ marginBottom: 12 }}>
-            <ClassCard lesson={item} onPress={() => handleOpenDetails(item)} />
-          </View>
-        ))}
-      </ScrollView>
-
-      <ClassDetailsModal
-        lesson={selectedLesson}
-        open={modalOpen}
-        onClose={handleCloseDetails}
-        onRefresh={onRefresh}
-        onCancelled={onRefresh}
-      />
-    </>
+    <ScrollView
+      contentContainerStyle={{ gap: spacing.m }}
+      refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} />}
+    >
+      {sortedLessons.map((lesson: any) => {
+        const role = lesson.tutorId === user.id ? "TUTOR" : "STUDENT";
+        return <ClassCard key={lesson.id} lesson={lesson} role={role} />;
+      })}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingVertical: 8,
-    backgroundColor: "#092a54ff",
-    borderRadius: 20,
-    padding: 20,
-    paddingTop: 25,
-    paddingBottom: 25,
-  },
-  emptyWrap: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 24,
-    gap: 6,
-    flexGrow: 1,
-  },
-  emptyTitle: {
-    fontWeight: "700",
-    fontSize: 16,
-    color: "#111827",
-  },
-  emptyText: {
-    color: "#6b7280",
-    textAlign: "center",
-    paddingHorizontal: 20,
-  },
+  muted: { color: colors.muted, marginTop: spacing.s },
 });

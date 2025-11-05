@@ -6,48 +6,62 @@ import ClassDetailsModal from "./classDetailsModal";
 
 type Props = {
   lesson: Lesson;
+  role: "TUTOR" | "STUDENT";
   onCancelled?: () => void;
-  onPress?: () => void;
 };
 
-export default function ClassCard({ lesson, onCancelled, onPress }: Props) {
+export function ClassCard({ lesson, role, onCancelled }: Props) {
   const [open, setOpen] = useState(false);
 
   const subjectName = lesson.subject?.name ?? "Materia";
-  const tutorName = `${lesson.tutor?.firstName ?? ""} ${lesson.tutor?.lastName ?? ""}`.trim();
+  const counterpart =
+    role === "TUTOR"
+      ? `${lesson.student?.firstName ?? ""} ${lesson.student?.lastName ?? ""}`.trim()
+      : `${lesson.tutor?.firstName ?? ""} ${lesson.tutor?.lastName ?? ""}`.trim();
+
+  const counterpartLabel = role === "TUTOR" ? "Alumno" : "Profesor";
+
   const subjectIcon = lesson.subject?.iconUrl
     ? { uri: lesson.subject.iconUrl }
     : require("../assets/images/subjectIcons/defaultNoImage.png");
 
-  const handlePress = () => {
-    if (onPress) onPress();
-    else setOpen(true);
-  };
-
   return (
     <>
-      <Pressable style={styles.card} onPress={handlePress}>
+      <Pressable style={styles.card} onPress={() => setOpen(true)}>
         <Image source={subjectIcon} style={styles.icon} />
+
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{subjectName}</Text>
-          <Text style={styles.subtitle}>{tutorName || "Profesor"}</Text>
+          <Text style={styles.subtitle}>
+            {counterpartLabel}: {counterpart || "No asignado"}
+          </Text>
+
           <View style={styles.row}>
             <Text style={styles.chip}>
               {lesson.modality === "ONLINE" ? "Virtual" : "Presencial"}
             </Text>
             <Text style={styles.date}>{formatDateTimeISO(lesson.timestamp)}</Text>
           </View>
+
+          <View style={styles.roleChipContainer}>
+            <Text
+              style={[
+                styles.roleChip,
+                role === "TUTOR" ? styles.roleTutor : styles.roleStudent,
+              ]}
+            >
+              {role === "TUTOR" ? "Tutor" : "Estudiante"}
+            </Text>
+          </View>
         </View>
       </Pressable>
 
-      {!onPress && (
-        <ClassDetailsModal
-          lesson={lesson}
-          open={open}
-          onClose={() => setOpen(false)}
-          onCancelled={onCancelled}
-        />
-      )}
+      <ClassDetailsModal
+        lesson={lesson}
+        open={open}
+        onClose={() => setOpen(false)}
+        onCancelled={onCancelled}
+      />
     </>
   );
 }
@@ -78,4 +92,18 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   date: { color: "#374151", fontSize: 12 },
+  roleChipContainer: {
+    marginTop: 6,
+    alignSelf: "flex-start",
+  },
+  roleChip: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "white",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  roleTutor: { backgroundColor: "#2563EB" },
+  roleStudent: { backgroundColor: "#16A34A" },
 });
