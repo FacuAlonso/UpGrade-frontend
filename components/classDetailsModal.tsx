@@ -61,7 +61,7 @@ export default function ClassDetailsModal({ lesson, open, onClose, onCancelled }
         }),
       ]).start();
     }
-  }, [open]);
+  }, [open, fadeAnim, slideAnim]);
 
   if (!lesson) return null;
 

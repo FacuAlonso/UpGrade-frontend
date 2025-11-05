@@ -36,8 +36,11 @@ export default function RegisterScreen() {
         body: JSON.stringify({ firstName, lastName, email, password }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo registrar el usuario");
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "No se pudo registrar el usuario");
+      }
+
       await login(email, password);
       router.replace("/home");
     } catch (err: any) {
@@ -45,7 +48,8 @@ export default function RegisterScreen() {
     } finally {
       setLoading(false);
     }
-  };
+};
+
 
   return (
     <KeyboardAwareScrollView

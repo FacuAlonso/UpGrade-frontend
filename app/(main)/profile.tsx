@@ -119,7 +119,7 @@ function Row({ label, value, onPress }: { label: string; value: string; onPress:
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: spacing.xl, backgroundColor: colors.background },
-  header: { flexDirection: "row", alignItems: "center", gap: spacing.l, marginBottom: spacing.xl },
+  header: { flexDirection: "row", alignItems: "center", gap: spacing.l, marginBottom: spacing.xl, marginTop: spacing.xxl},
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },
   avatarText: { fontSize: 20, fontWeight: "700", color: colors.text },
   title: { fontSize: 22, fontWeight: "700", color: colors.text },

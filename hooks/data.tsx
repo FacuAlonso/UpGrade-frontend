@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
+import store from "@/redux/store";
 
 // -------------- Tipos -----------
 
@@ -68,20 +69,32 @@ export type TutorAvailability = {
   tutor: User;
 };
 
+export type TutorWithData = User & {
+  tutorSubjects: { subject: Subject }[];
+  classSlots: ClassSlot[];
+};
+
 export async function fetchJSON<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const baseUrl = process.env.EXPO_PUBLIC_DB_API_URL;
+  const state = store.getState();
+  const token = state.user.token;
+
   const res = await fetch(`${baseUrl}${endpoint}`, {
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     ...options,
   });
 
   if (!res.ok) {
-    const error = await res.text();
-    throw new Error(error || res.statusText);
+    const text = await res.text();
+    throw new Error(text || res.statusText);
   }
 
   return res.json() as Promise<T>;
 }
+
 
 // ---------------------- Consultas ----------------------
 
@@ -127,9 +140,18 @@ export function useCreateLesson() {
 
 export function useFetchTutors() {
   const { fetchWithAuth } = useAuth();
+
   return useQuery({
     queryKey: ["tutors"],
-    queryFn: () => fetchWithAuth<User[]>("/users/tutors"),
+    queryFn: async () => {
+      const data = await fetchWithAuth<TutorWithData[]>("/users/tutors");
+
+      return data.map((tutor) => ({
+        ...tutor,
+        tutorSubjects: tutor.tutorSubjects ?? [],
+        classSlots: tutor.classSlots ?? [],
+      }));
+    }
   });
 }
 

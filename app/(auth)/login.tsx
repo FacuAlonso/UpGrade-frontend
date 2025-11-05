@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, Text, Alert } from "react-native";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import FormTextInput from "../../components/formTextInput";
 import PrimaryButton from "../../components/primaryButton";
@@ -53,7 +53,7 @@ export default function LoginScreen() {
       />
 
       {/* DEUDA TÉCNICA: FORGOT PASSWORD
-       
+
       <Link href="/forgot-password">
         <Text style={styles.link}>Olvidé mi contraseña</Text>
       </Link> */}

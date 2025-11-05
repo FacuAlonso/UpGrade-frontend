@@ -1,9 +1,18 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useDispatch } from "react-redux";
+import {
+  loginStart,
+  loginSuccess,
+  loginFailure,
+  logout as logoutAction,
+} from "../redux/reducers/userSlice";
+
+
 
 type AuthUser = {
   id: number;
-  firstName: string; 
+  firstName: string;
   lastName: string;
   email: string;
   xpLevel?: number;
@@ -32,6 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     (async () => {
@@ -41,33 +51,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const parsed = JSON.parse(saved);
           setUser(parsed.user);
           setToken(parsed.token);
+          dispatch(loginSuccess({ user: parsed.user, token: parsed.token }));
         }
-      } catch (err) {
-        console.error("Error al cargar sesión:", err);
+      } catch {
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [dispatch]);
 
   const login = async (email: string, password: string) => {
     setLoading(true);
     setError(null);
+    dispatch(loginStart());
     try {
       const res = await fetch(`${process.env.EXPO_PUBLIC_DB_API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al iniciar sesión");
-
       setUser(data.user);
       setToken(data.token);
       await AsyncStorage.setItem("auth", JSON.stringify({ user: data.user, token: data.token }));
+      dispatch(loginSuccess({ user: data.user, token: data.token }));
     } catch (err: any) {
       setError(err.message);
+      dispatch(loginFailure(err.message));
     } finally {
       setLoading(false);
     }
@@ -78,9 +89,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await AsyncStorage.removeItem("auth");
       setUser(null);
       setToken(null);
-    } catch (err) {
-      console.error("Error al cerrar sesión:", err);
-    }
+      dispatch(logoutAction());
+    } catch {}
   };
 
   async function fetchWithAuth<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -91,12 +101,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       },
       ...options,
     });
-
     if (res.status === 401) {
       await logout();
       throw new Error("Token inválido o expirado. Se cerró la sesión.");
     }
-
     const text = await res.text();
     const data = text ? JSON.parse(text) : {};
     if (!res.ok) throw new Error(data.error || res.statusText);

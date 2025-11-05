@@ -3,6 +3,8 @@ import {FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View} from
 import colors from "@/theme/colors";
 import spacing from "@/theme/spacing";
 import type { User, ClassSlot } from "@/hooks/data";
+import { levelStatsFromXp } from "@/utils/xpUtils";
+
 
 type Props = {
   tutors: { tutor: User; slots: ClassSlot[] }[];
@@ -51,22 +53,22 @@ export default function SearchTeacherList({
 
               <Text style={{ color: colors.muted }}>
                 {item.slots
-                  .slice(0, 3) 
+                  .slice(0, 4) 
                   .map((s) => {
                     const d = new Date(s.date);
                     const day =
                       ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][
                         d.getDay()
                       ];
-                    return `${day} ${s.startTime}-${s.endTime}`;
+                    return `${day}`;
                   })
-                  .join(" · ")}
+                  .join(" · ") + "..."}
               </Text>
             </View>
 
             <View style={{ alignItems: "flex-end" }}>
               <Text style={[styles.rating, { color: colors.text }]}>
-                {(item.tutor.rating ?? 5).toFixed(1)} ⭐
+                Nivel {levelStatsFromXp(item.tutor.xpLevel ?? 0).level}
               </Text>
             </View>
           </View>

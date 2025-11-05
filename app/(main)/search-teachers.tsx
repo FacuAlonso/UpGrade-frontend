@@ -4,7 +4,12 @@ import { ActivityIndicator, View, Text } from "react-native";
 import FormTextInput from "@/components/formTextInput";
 import colors from "@/theme/colors";
 import spacing from "@/theme/spacing";
-import { useFetchTutors, type User, type ClassSlot, fetchJSON } from "@/hooks/data";
+import {
+  useFetchTutors,
+  type User,
+  type ClassSlot,
+  fetchJSON,
+} from "@/hooks/data";
 import SearchTeacherList from "@/components/searchTeacherList";
 import LessonBookModal from "@/components/lessonBookModal";
 import { useCreateLesson } from "@/hooks/data";
@@ -19,15 +24,22 @@ export default function SearchTeachersScreen() {
   const [teacherSlots, setTeacherSlots] = useState<ClassSlot[]>([]);
   const { mutateAsync: createLesson } = useCreateLesson();
 
+  // 🔍 Filtro combinado por nombre o materia
   const filteredTutors = useMemo(() => {
     if (!tutors) return [];
-    return tutors
-      .filter((t) =>
-        !query
-          ? true
-          : `${t.firstName} ${t.lastName}`.toLowerCase().includes(query.toLowerCase())
-      )
-      .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+
+    const normalize = (text: string) =>
+      text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const q = normalize(query);
+
+    return tutors.filter((tutor: User) => {
+      const fullName = normalize(`${tutor.firstName} ${tutor.lastName}`);
+      const subjectNames = (tutor.tutorSubjects ?? [])
+        .map((ts: { subject: { name: string } }) => normalize(ts.subject.name))
+        .join(" ");
+
+      return !q || fullName.includes(q) || subjectNames.includes(q);
+    });
   }, [tutors, query]);
 
   const handleOpenReserve = useCallback(async (t: User) => {
@@ -72,17 +84,17 @@ export default function SearchTeachersScreen() {
         }}
       >
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ color: colors.muted, marginTop: 8 }}>Cargando profesores...</Text>
+        <Text style={{ color: colors.muted, marginTop: 8 }}>Cargando tutores...</Text>
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, padding: spacing.xl, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, padding: spacing.xl, backgroundColor: colors.background, marginTop: 20 }}>
       <Stack.Screen options={{ title: "Buscar tutores" }} />
 
       <FormTextInput
-        placeholder="Buscar por nombre"
+        placeholder="Buscar por nombre o materia"
         value={query}
         onChangeText={setQuery}
         returnKeyType="search"

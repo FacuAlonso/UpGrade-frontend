@@ -4,7 +4,6 @@ import colors from "@/theme/colors";
 import spacing from "@/theme/spacing";
 import type { ClassSlot, Subject, User } from "@/hooks/data";
 import ConfirmationAnimation from "@/components/animations/confirmationAnimation";
-import { useAuth } from "@/hooks/useAuth"; 
 
 type Props = {
   teacher: User | null;
