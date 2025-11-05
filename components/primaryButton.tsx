@@ -1,14 +1,15 @@
 import React from "react";
-import { Pressable, Text, StyleSheet, ViewStyle } from "react-native";
+import { Pressable, Text, StyleSheet, ViewStyle, TextStyle } from "react-native";
 import colors from "../theme/colors";
 import spacing from "../theme/spacing";
 
 type Props = {
   label: string;
- onPress?: () => void;
-  disabled?: boolean; 
-  loading?: boolean;      
+  onPress?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
   style?: ViewStyle;
+  textStyle?: TextStyle;
 };
 
 export default function PrimaryButton({
@@ -17,18 +18,15 @@ export default function PrimaryButton({
   disabled = false,
   loading = false,
   style,
+  textStyle,
 }: Props) {
   return (
     <Pressable
       onPress={disabled ? undefined : onPress}
       disabled={disabled}
-      style={[
-        styles.button,
-        disabled && styles.buttonDisabled,
-        style,
-      ]}
+      style={[styles.button, disabled && styles.buttonDisabled, style]}
     >
-      <Text style={styles.text}>
+      <Text style={[styles.text, textStyle]}>
         {loading ? "Guardando..." : label}
       </Text>
     </Pressable>

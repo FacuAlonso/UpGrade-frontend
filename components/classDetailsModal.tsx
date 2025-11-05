@@ -1,33 +1,24 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Modal,
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  Linking,
-  Animated,
-  Easing,
-} from "react-native";
+import { Modal, View, Text, Pressable, StyleSheet, Linking, Animated, Easing, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import colors from "@/theme/colors";
-import spacing from "@/theme/spacing";
+import colors from "../theme/colors";
+import spacing from "../theme/spacing";
 import PrimaryButton from "./primaryButton";
-import { Lesson } from "@/hooks/data";
-import { formatDateTimeISO } from "@/utils/formatDate";
-import { useAuth } from "@/hooks/useAuth";
+import { Lesson } from "../hooks/data";
+import { formatDateTimeISO } from "../utils/formatDate";
+import { useAuth } from "../hooks/useAuth";
 
 type Props = {
   lesson: Lesson | null;
   open: boolean;
   onClose: () => void;
   onCancelled?: () => void;
+  onRefresh?: () => void;
 };
 
-export default function ClassDetailsModal({ lesson, open, onClose, onCancelled }: Props) {
+export default function ClassDetailsModal({ lesson, open, onClose, onCancelled, onRefresh }: Props) {
   const { fetchWithAuth } = useAuth();
   const [loading, setLoading] = useState(false);
-
   const fadeAnim = useRef(new Animated.Value(100)).current;
   const slideAnim = useRef(new Animated.Value(300)).current;
 
@@ -68,7 +59,6 @@ export default function ClassDetailsModal({ lesson, open, onClose, onCancelled }
   const subject = lesson.subject?.name ?? "Materia";
   const tutor = `${lesson.tutor?.firstName ?? ""} ${lesson.tutor?.lastName ?? ""}`.trim();
   const when = formatDateTimeISO(lesson.timestamp);
-
   const date = new Date(lesson.timestamp);
   const now = new Date();
   const diffMs = date.getTime() - now.getTime();
@@ -76,19 +66,33 @@ export default function ClassDetailsModal({ lesson, open, onClose, onCancelled }
   const isSoon = diffHours <= 24 && diffHours > 0;
 
   const handleCancel = async () => {
-    setLoading(true);
-    try {
-      await fetchWithAuth(`/lessons/cancel`, {
-        method: "POST",
-        body: JSON.stringify({ lessonId: lesson.id }),
-      });
-      onCancelled?.();
-      onClose();
-    } catch (err) {
-      console.error("Error al cancelar clase:", err);
-    } finally {
-      setLoading(false);
-    }
+    Alert.alert(
+      "Cancelar clase",
+      "¿Estás seguro de que querés cancelar esta clase?",
+      [
+        { text: "No", style: "cancel" },
+        {
+          text: "Sí, cancelar",
+          style: "destructive",
+          onPress: async () => {
+            setLoading(true);
+            try {
+              await fetchWithAuth(`/lessons/cancel`, {
+                method: "POST",
+                body: JSON.stringify({ lessonId: lesson.id }),
+              });
+              onCancelled?.();
+              onRefresh?.();
+              onClose();
+            } catch (err) {
+              console.error("Error al cancelar clase:", err);
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const contact: string[] = [
@@ -100,9 +104,7 @@ export default function ClassDetailsModal({ lesson, open, onClose, onCancelled }
 
   return (
     <Modal transparent visible={open} onRequestClose={onClose}>
-      <Animated.View
-        style={[styles.backdrop, { opacity: fadeAnim }]}
-      >
+      <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
         <Pressable style={{ flex: 1 }} onPress={onClose} />
       </Animated.View>
 

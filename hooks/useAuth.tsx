@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dispatch(logoutAction());
   };
 
-  async function fetchWithAuth<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  async function fetchWithAuth<T = any>(endpoint: string, options?: RequestInit): Promise<T> {
     const res = await fetch(`${process.env.EXPO_PUBLIC_DB_API_URL}${endpoint}`, {
       headers: {
         "Content-Type": "application/json",
@@ -83,6 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!res.ok) throw new Error(data.error || res.statusText);
     return data as T;
   }
+
 
   return (
     <AuthContext.Provider

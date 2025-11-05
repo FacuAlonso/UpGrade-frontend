@@ -22,22 +22,23 @@ export default function ConfirmationAnimation({ visible, onFinish }: Props) {
         }),
         Animated.timing(opacity, {
           toValue: 1,
-          duration: 400,
+          duration: 500,
           easing: Easing.out(Easing.exp),
           useNativeDriver: true,
         }),
       ]).start(() => {
-        setTimeout(() => {
+        const hold = setTimeout(() => {
           Animated.timing(opacity, {
             toValue: 0,
-            duration: 400,
+            duration: 600,
             easing: Easing.in(Easing.exp),
             useNativeDriver: true,
           }).start(() => {
             scale.setValue(0);
             if (onFinish) onFinish();
           });
-        }, 1000);
+        }, 2000);
+        return () => clearTimeout(hold);
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -66,16 +67,16 @@ export default function ConfirmationAnimation({ visible, onFinish }: Props) {
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.25)",
+    backgroundColor: "rgba(0,0,0,0.35)",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 100,
   },
   container: {
     backgroundColor: "#00C26D",
-    borderRadius: 20,
-    paddingVertical: 40,
-    paddingHorizontal: 50,
+    borderRadius: 24,
+    paddingVertical: 45,
+    paddingHorizontal: 60,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",

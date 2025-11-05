@@ -7,14 +7,17 @@ import {
   Text,
   View,
 } from "react-native";
-import { useFetchLessons } from "@/hooks/data";
-import { useAuth } from "@/hooks/useAuth";
+import { useFetchLessons, Lesson } from "../hooks/data";
+import { useAuth } from "../hooks/useAuth";
 import ClassCard from "./classCard";
+import ClassDetailsModal from "./classDetailsModal";
 
 export function MyClassesList() {
   const { user } = useAuth();
   const { data: lessons, isLoading, isError, refetch, isRefetching } = useFetchLessons();
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -24,10 +27,18 @@ export function MyClassesList() {
 
   const sessions = useMemo(() => {
     if (!lessons || !user) return [];
-    return lessons.filter(
-      (l) => l.studentId === user.id || l.tutorId === user.id
-    );
+    return lessons.filter((l) => l.studentId === user.id || l.tutorId === user.id);
   }, [lessons, user]);
+
+  const handleOpenDetails = (lesson: Lesson) => {
+    setSelectedLesson(lesson);
+    setModalOpen(true);
+  };
+
+  const handleCloseDetails = () => {
+    setModalOpen(false);
+    setSelectedLesson(null);
+  };
 
   if (isLoading && !isRefetching) {
     return (
@@ -65,16 +76,26 @@ export function MyClassesList() {
   }
 
   return (
-    <ScrollView
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      contentContainerStyle={styles.container}
-    >
-      {sessions.map((item) => (
-        <View key={item.id} style={{ marginBottom: 12 }}>
-          <ClassCard lesson={item} />
-        </View>
-      ))}
-    </ScrollView>
+    <>
+      <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={styles.container}
+      >
+        {sessions.map((item) => (
+          <View key={item.id} style={{ marginBottom: 12 }}>
+            <ClassCard lesson={item} onPress={() => handleOpenDetails(item)} />
+          </View>
+        ))}
+      </ScrollView>
+
+      <ClassDetailsModal
+        lesson={selectedLesson}
+        open={modalOpen}
+        onClose={handleCloseDetails}
+        onRefresh={onRefresh}
+        onCancelled={onRefresh}
+      />
+    </>
   );
 }
 

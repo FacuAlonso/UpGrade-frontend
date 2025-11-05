@@ -1,15 +1,16 @@
 import React, { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { Lesson } from "@/hooks/data";
-import { formatDateTimeISO } from "@/utils/formatDate";
+import { Lesson } from "../hooks/data";
+import { formatDateTimeISO } from "../utils/formatDate";
 import ClassDetailsModal from "./classDetailsModal";
 
 type Props = {
   lesson: Lesson;
   onCancelled?: () => void;
+  onPress?: () => void;
 };
 
-export default function ClassCard({ lesson, onCancelled }: Props) {
+export default function ClassCard({ lesson, onCancelled, onPress }: Props) {
   const [open, setOpen] = useState(false);
 
   const subjectName = lesson.subject?.name ?? "Materia";
@@ -18,15 +19,18 @@ export default function ClassCard({ lesson, onCancelled }: Props) {
     ? { uri: lesson.subject.iconUrl }
     : require("../assets/images/subjectIcons/defaultNoImage.png");
 
+  const handlePress = () => {
+    if (onPress) onPress();
+    else setOpen(true);
+  };
+
   return (
     <>
-      <Pressable style={styles.card} onPress={() => setOpen(true)}>
+      <Pressable style={styles.card} onPress={handlePress}>
         <Image source={subjectIcon} style={styles.icon} />
-
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{subjectName}</Text>
           <Text style={styles.subtitle}>{tutorName || "Profesor"}</Text>
-
           <View style={styles.row}>
             <Text style={styles.chip}>
               {lesson.modality === "ONLINE" ? "Virtual" : "Presencial"}
@@ -36,13 +40,14 @@ export default function ClassCard({ lesson, onCancelled }: Props) {
         </View>
       </Pressable>
 
-      {/* Modal de detalle */}
-      <ClassDetailsModal
-        lesson={lesson}
-        open={open}
-        onClose={() => setOpen(false)}
-        onCancelled={onCancelled}
-      />
+      {!onPress && (
+        <ClassDetailsModal
+          lesson={lesson}
+          open={open}
+          onClose={() => setOpen(false)}
+          onCancelled={onCancelled}
+        />
+      )}
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
-import store from "../redux/store";
+import { store } from "../redux/store";
 
 // -------------- Tipos -----------
 
