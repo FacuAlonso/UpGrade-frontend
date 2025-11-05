@@ -14,7 +14,7 @@ import { setMode } from "../../redux/reducers/appModeSlice";
 export default function ProfileScreen() {
   const { user, logout, fetchWithAuth, refreshMe } = useAuth();
 
-  const [phone, setPhone] = useState(user?.contactData ?? "");
+  const [phone] = useState(user?.contactData ?? "");
   const [pwdOpen, setPwdOpen] = useState(false);
 
   const [editAddressOpen, setEditAddressOpen] = useState(false);

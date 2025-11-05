@@ -10,10 +10,11 @@ import spacing from "../../theme/spacing";
 
 export default function CreateClassesScreen() {
   const qc = useQueryClient();
-  const { user } = useAuth();
   const { availabilities, refetchAvail } = useAvailabilities();
   const [selectedAvailability, setSelectedAvailability] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  const { token } = useAuth();
 
   const handleDelete = async (availability: any) => {
     Alert.alert("Eliminar disponibilidad", "¿Seguro querés eliminar esta disponibilidad?", [
@@ -23,19 +24,26 @@ export default function CreateClassesScreen() {
         style: "destructive",
         onPress: async () => {
           try {
-            await fetch(`${process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000"}/availability/${availability.id}`, {
-              method: "DELETE",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${user?.token}` },
-            });
+            await fetch(
+              `${process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000"}/availability/${availability.id}`,
+              {
+                method: "DELETE",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
             await refetchAvail();
           } catch (e) {
             Alert.alert("Error", "No se pudo eliminar la disponibilidad.");
-            console.log(e)
+            console.log(e);
           }
         },
       },
     ]);
   };
+
 
   if (!availabilities) {
     return (
