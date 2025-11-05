@@ -7,18 +7,25 @@ import colors from "../../theme/colors";
 import spacing from "../../theme/spacing";
 import { useAuth } from "../../hooks/useAuth";
 import PrimaryButton from "../../components/primaryButton";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "../../redux/store";
+import { setMode } from "../../redux/reducers/appModeSlice";
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
+
+  // 👉 estados locales que sí quedan
   const [phone, setPhone] = useState(user?.contactData ?? "");
-  const [isTutor, setIsTutor] = useState(false);
   const [editNameOpen, setEditNameOpen] = useState(false);
   const [editEmailOpen, setEditEmailOpen] = useState(false);
   const [editPhoneOpen, setEditPhoneOpen] = useState(false);
   const [pwdOpen, setPwdOpen] = useState(false);
 
-  const name = `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim();
+  // 👉 estado global de modo (Redux)
+  const mode = useSelector((s: RootState) => s.appMode.mode);
+  const dispatch = useDispatch();
 
+  const name = `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim();
   const email = user?.email ?? "";
 
   return (
@@ -55,13 +62,15 @@ export default function ProfileScreen() {
         <View style={styles.row}>
           <Text style={styles.rowLabel}>Activar modo tutor</Text>
           <Switch
-            value={isTutor}
-            onValueChange={setIsTutor}
+            value={mode === "tutor"}
+            onValueChange={(next) => { dispatch(setMode(next ? "tutor" : "student")); }} // ← llaves, no retorna nada
             trackColor={{ false: "#D1D5DB", true: colors.primary }}
             thumbColor={"#fff"}
           />
+
         </View>
-        {isTutor && (
+
+        {mode === "tutor" && (
           <Text style={styles.helper}>
             Modo tutor activo. Vas a ver opciones para gestionar perfil, agenda y tareas con alumnos.
           </Text>
@@ -119,7 +128,7 @@ function Row({ label, value, onPress }: { label: string; value: string; onPress:
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: spacing.xl, backgroundColor: colors.background },
-  header: { flexDirection: "row", alignItems: "center", gap: spacing.l, marginBottom: spacing.xl, marginTop: spacing.xxl},
+  header: { flexDirection: "row", alignItems: "center", gap: spacing.l, marginBottom: spacing.xl, marginTop: spacing.xxl },
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },
   avatarText: { fontSize: 20, fontWeight: "700", color: colors.text },
   title: { fontSize: 22, fontWeight: "700", color: colors.text },

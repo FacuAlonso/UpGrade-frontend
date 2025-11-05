@@ -1,32 +1,53 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, ViewStyle, TextStyle } from "react-native";
+import { Pressable, Text, StyleSheet, ViewStyle } from "react-native";
+import colors from "../theme/colors";
+import spacing from "../theme/spacing";
 
 type Props = {
   label: string;
-  onPress?: () => void;
+  onPress: () => void;
+  disabled?: boolean;     // ⬅️ nueva
+  loading?: boolean;      // opcional, por si querés mostrar “Guardando...”
   style?: ViewStyle;
-  textStyle?: TextStyle; 
 };
 
-export default function PrimaryButton({ label, onPress, style, textStyle }: Props) {
+export default function PrimaryButton({
+  label,
+  onPress,
+  disabled = false,
+  loading = false,
+  style,
+}: Props) {
   return (
-    <Pressable style={[styles.button, style]} onPress={onPress}>
-      <Text style={[styles.label, textStyle]}>{label}</Text>
+    <Pressable
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
+      style={[
+        styles.button,
+        disabled && styles.buttonDisabled,
+        style,
+      ]}
+    >
+      <Text style={styles.text}>
+        {loading ? "Guardando..." : label}
+      </Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    height: 48,
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: spacing.l,
     borderRadius: 12,
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#22C55E",
   },
-  label: {
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  text: {
     color: "#fff",
     fontWeight: "700",
-    fontSize: 16,
   },
 });
