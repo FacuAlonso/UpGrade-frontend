@@ -20,6 +20,13 @@ export type AuthUser = {
   contactData?: string | null;
   classroomAddress?: string | null;
   onlineClassroomLink?: string | null;
+  tutorSubjects?: {
+    subject: {
+      id: number;
+      name: string;
+      iconUrl?: string | null;
+    };
+  }[];
 };
 
 type AuthContextType = {

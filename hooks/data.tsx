@@ -21,7 +21,6 @@ export type User = {
   classSlots?: ClassSlot[];
 };
 
-
 export type Subject = {
   id: number;
   name: string;
@@ -63,8 +62,8 @@ export type ClassSlot = {
 export type TutorAvailability = {
   id: number;
   tutorId: number;
-  weekdays: number[]; 
-  timeBlocks: { start: string; end: string }[]; 
+  weekdays: number[];
+  timeBlocks: { start: string; end: string }[];
   active: boolean;
   tutor: User;
 };
@@ -94,7 +93,6 @@ export async function fetchJSON<T>(endpoint: string, options?: RequestInit): Pro
 
   return res.json() as Promise<T>;
 }
-
 
 // ---------------------- Consultas ----------------------
 
@@ -145,13 +143,12 @@ export function useFetchTutors() {
     queryKey: ["tutors"],
     queryFn: async () => {
       const data = await fetchWithAuth<TutorWithData[]>("/users/tutors");
-
       return data.map((tutor) => ({
         ...tutor,
         tutorSubjects: tutor.tutorSubjects ?? [],
         classSlots: tutor.classSlots ?? [],
       }));
-    }
+    },
   });
 }
 
@@ -169,6 +166,27 @@ export function useCancelLesson() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lessons"] });
       qc.invalidateQueries({ queryKey: ["slots"] });
+    },
+  });
+}
+
+export function useUpdateTutorSubjects() {
+  const qc = useQueryClient();
+  const { fetchWithAuth } = useAuth();
+
+  return useMutation({
+    mutationFn: async (subjectIds: number[]) => {
+      return fetchWithAuth<{ message: string; tutorSubjects: { subject: Subject }[] }>(
+        "/users/me/subjects",
+        {
+          method: "POST",
+          body: JSON.stringify({ subjectIds }),
+        }
+      );
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tutors"] });
+      qc.invalidateQueries({ queryKey: ["userProfile"] });
     },
   });
 }

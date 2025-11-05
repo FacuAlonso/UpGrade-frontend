@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { View, Text, StyleSheet, Switch, Pressable, Alert, ScrollView } from "react-native";
 import { Stack } from "expo-router";
-import EditFieldModal from "../../components/editFieldModal";
-import ChangePasswordModal from "../../components/changePasswordModal";
+import { Ionicons } from "@expo/vector-icons";
+import Modal from "react-native-modal";
 import colors from "../../theme/colors";
 import spacing from "../../theme/spacing";
 import { useAuth } from "../../hooks/useAuth";
@@ -10,16 +10,19 @@ import PrimaryButton from "../../components/primaryButton";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../redux/store";
 import { setMode } from "../../redux/reducers/appModeSlice";
+import { useFetchSubjects, useUpdateTutorSubjects } from "../../hooks/data";
+import EditFieldModal from "../../components/editFieldModal";
+import ChangePasswordModal from "../../components/changePasswordModal";
 
 export default function ProfileScreen() {
   const { user, logout, fetchWithAuth, refreshMe } = useAuth();
 
   const [phone] = useState(user?.contactData ?? "");
   const [pwdOpen, setPwdOpen] = useState(false);
-
   const [editAddressOpen, setEditAddressOpen] = useState(false);
   const [editLinkOpen, setEditLinkOpen] = useState(false);
   const [editContactOpen, setEditContactOpen] = useState(false);
+  const [editSubjectsOpen, setEditSubjectsOpen] = useState(false);
 
   const [address, setAddress] = useState(user?.classroomAddress ?? "");
   const [link, setLink] = useState(user?.onlineClassroomLink ?? "");
@@ -31,6 +34,44 @@ export default function ProfileScreen() {
   const name = `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim();
   const email = user?.email ?? "";
 
+  const { data: allSubjects = [] } = useFetchSubjects();
+  const { mutate: updateSubjects, isPending } = useUpdateTutorSubjects();
+
+  const userSubjects = useMemo(() => {
+    return user?.tutorSubjects?.map((ts) => ts.subject.id) ?? [];
+  }, [user?.tutorSubjects]);
+
+  const [selectedSubjects, setSelectedSubjects] = useState<number[]>([]);
+
+  useEffect(() => {
+    setSelectedSubjects(userSubjects);
+  }, [userSubjects]);
+
+  function openEditSubjectsModal() {
+    setSelectedSubjects(userSubjects);
+    setEditSubjectsOpen(true);
+  }
+
+  function toggleSubject(id: number) {
+    setSelectedSubjects((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  }
+
+  function handleSaveSubjects() {
+    if (!selectedSubjects) return;
+    updateSubjects(selectedSubjects, {
+      onSuccess: async () => {
+        await refreshMe();
+        setEditSubjectsOpen(false);
+        Alert.alert("Listo", "Materias actualizadas correctamente ✅");
+      },
+      onError: (err) => {
+        Alert.alert("Error", err.message ?? "No se pudieron guardar los cambios");
+      },
+    });
+  }
+
   async function patchMe(payload: Partial<{
     classroomAddress: string | null;
     onlineClassroomLink: string | null;
@@ -41,19 +82,14 @@ export default function ProfileScreen() {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      await refreshMe(); 
+      await refreshMe();
     } catch (e: any) {
       Alert.alert("Error", e.message ?? "No se pudo guardar.");
-      throw e;
     }
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       <Stack.Screen options={{ title: "Perfil" }} />
 
       <View style={styles.header}>
@@ -70,7 +106,7 @@ export default function ProfileScreen() {
       <View style={styles.card}>
         <Row label="Nombre" value={name} />
         <Row label="Email" value={email} />
-        <Row label="Teléfono" value={phone}  />
+        <Row label="Teléfono" value={phone} />
       </View>
 
       <Text style={styles.sectionTitle}>Seguridad</Text>
@@ -87,7 +123,10 @@ export default function ProfileScreen() {
           <Text style={styles.rowLabel}>Activar modo tutor</Text>
           <Switch
             value={mode === "tutor"}
-            onValueChange={(next) => { dispatch(setMode(next ? "tutor" : "student")); }}
+            onValueChange={(next) => {
+              dispatch(setMode(next ? "tutor" : "student"));
+              return undefined; // ✅ evita error de tipo
+            }}
             trackColor={{ false: "#D1D5DB", true: colors.primary }}
             thumbColor={"#fff"}
           />
@@ -103,32 +142,21 @@ export default function ProfileScreen() {
         <>
           <Text style={styles.sectionTitle}>Datos de tutor</Text>
           <View style={styles.card}>
-            <Row
-              label="Dirección presencial"
-              value={address || "—"}
-              onPress={() => setEditAddressOpen(true)}
-            />
-            <Row
-              label="Link de clase online"
-              value={link || "—"}
-              onPress={() => setEditLinkOpen(true)}
-            />
-            <Row
-              label="Contacto (WhatsApp/Telegram)"
-              value={contact || "—"}
-              onPress={() => setEditContactOpen(true)}
-            />
+            <Row label="Dirección presencial" value={address || "—"} onPress={() => setEditAddressOpen(true)} />
+            <Row label="Link de clase online" value={link || "—"} onPress={() => setEditLinkOpen(true)} />
+            <Row label="Contacto (WhatsApp/Telegram)" value={contact || "—"} onPress={() => setEditContactOpen(true)} />
           </View>
+
+          <Pressable style={styles.editSubjectsButton} onPress={openEditSubjectsModal}>
+            <Ionicons name="book-outline" size={18} color={colors.primary} />
+            <Text style={styles.editSubjectsText}>Editar materias que enseño</Text>
+          </Pressable>
         </>
       )}
 
       <PrimaryButton label="Cerrar sesión" onPress={logout} />
 
-      <ChangePasswordModal
-        visible={pwdOpen}
-        onClose={() => setPwdOpen(false)}
-        onSave={(payload) => console.log("Cambiar contraseña:", payload)}
-      />
+      <ChangePasswordModal visible={pwdOpen} onClose={() => setPwdOpen(false)} onSave={() => {}} />
 
       <EditFieldModal
         visible={editAddressOpen}
@@ -146,7 +174,6 @@ export default function ProfileScreen() {
         label="Link de clase online"
         placeholder="https://meet.google.com/..."
         initialValue={link}
-        keyboardType="default"
         onClose={() => setEditLinkOpen(false)}
         onSave={(val) => {
           setLink(val);
@@ -164,6 +191,50 @@ export default function ProfileScreen() {
           patchMe({ contactData: val.length ? val : null });
         }}
       />
+
+      <Modal
+        isVisible={editSubjectsOpen}
+        onBackdropPress={() => setEditSubjectsOpen(false)}
+        style={{ justifyContent: "center", margin: 20 }}
+      >
+        <View style={styles.modalCard}>
+          <Text style={styles.modalTitle}>Editar materias que enseño</Text>
+
+          <Text style={styles.modalSubtitle}>Materias que enseñas</Text>
+          <View style={styles.subjectList}>
+            {allSubjects.filter((s) => selectedSubjects.includes(s.id)).map((s) => (
+              <Pressable key={s.id} style={styles.subjectPillSelected} onPress={() => toggleSubject(s.id)}>
+                <Text style={styles.subjectTextSelected}>{s.name}</Text>
+              </Pressable>
+            ))}
+            {selectedSubjects.length === 0 && (
+              <Text style={styles.emptyText}>No seleccionaste ninguna materia.</Text>
+            )}
+          </View>
+
+          <Text style={styles.modalSubtitle}>Otras materias disponibles</Text>
+          <View style={styles.subjectList}>
+            {allSubjects.filter((s) => !selectedSubjects.includes(s.id)).map((s) => (
+              <Pressable key={s.id} style={styles.subjectPill} onPress={() => toggleSubject(s.id)}>
+                <Text style={styles.subjectText}>{s.name}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <View style={styles.modalButtons}>
+            <Pressable style={styles.cancelBtn} onPress={() => setEditSubjectsOpen(false)}>
+              <Text style={styles.cancelText}>Cancelar</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.saveBtn, isPending && { opacity: 0.6 }]}
+              disabled={isPending}
+              onPress={handleSaveSubjects}
+            >
+              <Text style={styles.saveText}>{isPending ? "Guardando..." : "Guardar"}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -181,49 +252,45 @@ function Row({ label, value, onPress }: { label: string; value: string; onPress?
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    padding: spacing.xl,
-    paddingBottom: spacing.xxl,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.l,
-    marginBottom: spacing.xl,
-    marginTop: spacing.xxl,
-  },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  scrollContent: { padding: spacing.xl, paddingBottom: spacing.xxl },
+  header: { flexDirection: "row", alignItems: "center", gap: spacing.l, marginBottom: spacing.xl, marginTop: spacing.xxl },
+  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },
   avatarText: { fontSize: 20, fontWeight: "700", color: colors.text },
   title: { fontSize: 22, fontWeight: "700", color: colors.text },
   subtitle: { color: colors.muted, marginTop: 2 },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.muted,
-    marginBottom: spacing.s,
-    marginTop: spacing.m,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    paddingHorizontal: spacing.l,
-    paddingVertical: spacing.s,
-    marginBottom: spacing.l,
-  },
+  sectionTitle: { fontSize: 14, fontWeight: "700", color: colors.muted, marginBottom: spacing.s, marginTop: spacing.m },
+  card: { backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: spacing.l, paddingVertical: spacing.s, marginBottom: spacing.l },
   row: { flexDirection: "row", alignItems: "center", paddingVertical: spacing.m, gap: spacing.m },
   rowLabel: { fontSize: 16, fontWeight: "600", color: colors.text },
   rowValue: { color: colors.muted, marginTop: 2 },
   rowAction: { color: colors.primary, fontWeight: "700" },
   helper: { color: colors.muted, marginTop: spacing.m, marginBottom: spacing.s },
+  editSubjectsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    paddingVertical: spacing.m,
+    marginBottom: spacing.l,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  editSubjectsText: { color: colors.primary, fontWeight: "600", fontSize: 15 },
+  modalCard: { backgroundColor: colors.surface, borderRadius: 16, padding: spacing.l },
+  modalTitle: { fontSize: 18, fontWeight: "700", color: colors.text, marginBottom: spacing.m },
+  modalSubtitle: { fontSize: 14, fontWeight: "600", color: colors.muted, marginTop: spacing.m, marginBottom: spacing.s },
+  subjectList: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  subjectPill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: "#E5E7EB" },
+  subjectText: { color: colors.text },
+  subjectPillSelected: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: colors.primary },
+  subjectTextSelected: { color: "#fff", fontWeight: "600" },
+  modalButtons: { flexDirection: "row", justifyContent: "flex-end", marginTop: spacing.l, gap: 12 },
+  cancelBtn: { paddingVertical: 8, paddingHorizontal: 16 },
+  cancelText: { color: colors.muted, fontWeight: "600" },
+  saveBtn: { backgroundColor: colors.primary, paddingVertical: 8, paddingHorizontal: 20, borderRadius: 8 },
+  saveText: { color: "#fff", fontWeight: "700" },
+  emptyText: { color: colors.muted, fontStyle: "italic", marginVertical: spacing.s },
 });
