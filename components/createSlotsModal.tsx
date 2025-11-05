@@ -7,6 +7,8 @@ import {
   Text,
   Alert,
   ActivityIndicator,
+  View,
+  Platform,
 } from "react-native";
 import { addWeeks, startOfWeek, format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -74,18 +76,26 @@ export default function CreateSlotsModal({ open, availability, onClose, onSucces
       Alert.alert("Listo", res.message || "Cupos generados correctamente.");
       onSuccess?.();
       onClose();
-    } catch (e: unknown) {
-      const err = e as { message?: string };
-      Alert.alert("Error", err.message ?? "No se pudieron crear los cupos.");
+    } catch (e: any) {
+      Alert.alert("Error", e.message ?? "No se pudieron crear los cupos.");
     } finally {
       setLoading(false);
     }
   };
 
+  if (!open) return null;
+
   return (
-    <Modal transparent animationType="slide" visible={open} onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={() => {}}>
+    <Modal
+      visible={open}
+      animationType="slide"
+      transparent={Platform.OS === "android"}
+      presentationStyle={Platform.OS === "ios" ? "pageSheet" : "overFullScreen"}
+      onRequestClose={onClose}
+    >
+      <View style={styles.overlay}>
+        <Pressable style={styles.backdrop} onPress={onClose} />
+        <View style={styles.sheet}>
           <Text style={styles.title}>Crear cupos</Text>
           <Text style={styles.subtitle}>
             {availability
@@ -132,14 +142,19 @@ export default function CreateSlotsModal({ open, availability, onClose, onSucces
               <Text style={styles.confirmText}>CONFIRMAR</Text>
             )}
           </Pressable>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
+  overlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  backdrop: { ...StyleSheet.absoluteFillObject },
   sheet: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: 16,

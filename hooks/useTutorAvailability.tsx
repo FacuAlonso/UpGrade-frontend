@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Alert } from "react-native";
 
 type TimeBlock = { start: string; end: string };
+
 export type Availability = {
   id: number;
   tutorId: number;
@@ -15,6 +16,7 @@ export type Availability = {
 export const useAvailabilities = () => {
   const { fetchWithAuth } = useAuth();
   const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: availabilities = [], refetch: refetchAvail } = useQuery<Availability[]>({
     queryKey: ["availability"],
@@ -50,7 +52,42 @@ export const useAvailabilities = () => {
     }
   };
 
-  return { availabilities, refetchAvail, createAvailability, creating };
+  const deleteAvailability = async (availabilityId: number, refetch: () => Promise<any>) => {
+    if (!availabilityId) return Alert.alert("Error", "Falta el ID de la disponibilidad.");
+
+    Alert.alert("Eliminar disponibilidad", "¿Seguro querés eliminar esta disponibilidad?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Eliminar",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            setDeleting(true);
+            const res = await fetchWithAuth<{ message: string }>("/availability/delete", {
+              method: "POST",
+              body: JSON.stringify({ id: availabilityId }),
+            });
+            Alert.alert("Listo", res.message || "Disponibilidad eliminada correctamente.");
+            await refetch();
+          } catch (e: unknown) {
+            const err = e as { message?: string };
+            Alert.alert("Error", err.message ?? "No se pudo eliminar la disponibilidad.");
+          } finally {
+            setDeleting(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  return {
+    availabilities,
+    refetchAvail,
+    createAvailability,
+    deleteAvailability,
+    creating,
+    deleting,
+  };
 };
 
 export const useGenerateWeek = (qc: any) => {

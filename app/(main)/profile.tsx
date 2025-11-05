@@ -38,7 +38,7 @@ export default function ProfileScreen() {
   }>) {
     try {
       await fetchWithAuth("/users/me", {
-        method: "PATCH",
+        method: "POST",
         body: JSON.stringify(payload),
       });
       await refreshMe(); 

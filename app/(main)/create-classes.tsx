@@ -7,12 +7,15 @@ import AvailabilityCard from "../../components/availabilityCard";
 import CreateSlotsModal from "../../components/createSlotsModal";
 import colors from "../../theme/colors";
 import spacing from "../../theme/spacing";
+import CreateAvailabilityModal from "../../components/createAvailabilityModal";
 
 export default function CreateClassesScreen() {
   const qc = useQueryClient();
   const { availabilities, refetchAvail } = useAvailabilities();
   const [selectedAvailability, setSelectedAvailability] = useState<any | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+
 
   const { token } = useAuth();
 
@@ -74,29 +77,42 @@ export default function CreateClassesScreen() {
       )}
 
       <Pressable
-        onPress={() => Alert.alert("Nuevo", "Función para crear una nueva disponibilidad.")}
+        onPress={() => setCreateModalOpen(true)}
         style={styles.newButton}
       >
         <Text style={styles.newButtonText}>+ Nueva disponibilidad</Text>
       </Pressable>
 
-      <CreateSlotsModal
-        open={modalOpen}
-        availability={selectedAvailability}
-        onClose={() => setModalOpen(false)}
-        onSuccess={() => {
-          setModalOpen(false);
-          qc.invalidateQueries({ queryKey: ["slots"] });
-          qc.invalidateQueries({ queryKey: ["availability"] });
-        }}
-      />
+      {createModalOpen && (
+        <CreateAvailabilityModal
+          open={createModalOpen}
+          onClose={() => setCreateModalOpen(false)}
+          onSuccess={() => {
+            setCreateModalOpen(false);
+            refetchAvail();
+          }}
+        />
+      )}
+
+      {modalOpen && (
+        <CreateSlotsModal
+          open={modalOpen}
+          availability={selectedAvailability}
+          onClose={() => setModalOpen(false)}
+          onSuccess={() => {
+            setModalOpen(false);
+            qc.invalidateQueries({ queryKey: ["slots"] });
+            qc.invalidateQueries({ queryKey: ["availability"] });
+          }}
+        />
+      )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { padding: spacing.l, gap: spacing.m },
-  title: { fontSize: 22, fontWeight: "700", color: colors.text },
+  title: { fontSize: 22, fontWeight: "700", color: colors.text, marginTop: 20 },
   muted: { color: colors.muted, marginTop: spacing.s },
   newButton: {
     backgroundColor: colors.primary,
